@@ -113,20 +113,36 @@ function clouds(ctx, set, camX, t, factor, y0, y1, n, sc, a = 1, seed = 1) {
   ctx.restore();
 }
 // full world backdrop; camX = world scroll in px
+// the mod's own backdrop (entrance GIFs): flat slate with a 16 px tile grid, grass cap and dirt
+const GRIDPAL = { dusk: ['#282c34', '#2f343d'], storm: ['#24282f', '#2c3139'], day: ['#2b3038', '#343a44'], night: ['#1c1f25', '#252931'] };
+function makeDirt() {
+  const w = 256, h = 90, tones = [[95, 67, 45], [108, 75, 53], [96, 68, 45], [110, 77, 55], [102, 72, 48], [104, 73, 51], [99, 69, 47]];
+  return pixCanvas(w, h, (i, j) => {
+    if (j < 6) return hr(Math.floor(i / 4) * 7.3 + (j < 3 ? 0 : 91)) > 0.72 ? [82, 138, 59] : [74, 130, 57];
+    if (j < 8) return [74, 54, 42];
+    const d = tones[Math.floor(hr(Math.floor(i / 4) * 13.1 + Math.floor((j - 8) / 4) * 71.7) * tones.length)];
+    const k = clamp((j - 58) / 30);                         // deeper rows go dark like the GIF
+    return [lerp(d[0], 40, k), lerp(d[1], 36, k), lerp(d[2], 38, k)];
+  });
+}
+function groundStrip(ctx, camX, gy, sc = 2) {
+  if (!BG.dirt) BG.dirt = makeDirt();
+  const img = BG.dirt, w = img.width * sc;
+  let o = ((-camX) % w + w) % w - w;
+  for (let x = o; x < W; x += w) ctx.drawImage(img, Math.round(x), Math.round(gy), w, img.height * sc);
+  if (gy + img.height * sc < H) rectF(ctx, 0, gy + img.height * sc, W, H, '#28242a');
+}
 function world(ctx, t, camX, o = {}) {
-  const pal = SKY[o.sky || 'dusk'];
-  skyFill(ctx, pal);
-  if (o.stars) for (let i = 0; i < 140; i++) rectF(ctx, hr(i * 3.1) * W, hr(i * 7.7) * H * 0.7, 2, 2, '#fff', 0.2 + 0.6 * hr(i * 5 + Math.floor(t * 4) * 0.01));
-  if (o.sun) light(ctx, o.sun[0], o.sun[1], 700, 'rgba(255,170,110,1)', 0.55);
-  const set = o.sky === 'night' ? BG.cloudsNight : o.sky === 'day' ? BG.cloudsDay : BG.cloudsDusk;
-  clouds(ctx, set, camX, t, 0.08, 60, 380, 6, 6, 0.55, 3);
-  const gy = o.groundY ?? 900;
-  const dusk = o.sky !== 'day';
-  strip(ctx, dusk ? BG.hillsFarDusk : BG.hillsFar, camX, 0.15, gy - 330, 5);
-  clouds(ctx, set, camX, t, 0.25, 180, 520, 5, 8, 0.8, 9);
-  strip(ctx, dusk ? BG.hillsNearDusk : BG.hillsNear, camX, 0.35, gy - 260, 5);
-  if (o.haze !== false) { const g = ctx.createLinearGradient(0, gy - 200, 0, gy + 40); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, o.hazeCol || 'rgba(255,140,110,0.18)'); ctx.fillStyle = g; ctx.fillRect(0, gy - 200, W, 240); }
-  if (o.ground !== false) strip(ctx, BG.ground, camX, 1, gy - 24, 4);
+  const [base, lineC] = GRIDPAL[o.sky || 'dusk'];
+  rectF(ctx, 0, 0, W, H, base);
+  const zm = o.zoom || 1, cell = (o.cell || 32) * zm, gy = o.groundY ?? 900;
+  ctx.save(); ctx.fillStyle = lineC;
+  const x0 = ((-(camX * zm) % cell) + cell) % cell, y0 = ((gy % cell) + cell) % cell;
+  for (let x = x0; x < W; x += cell) ctx.fillRect(Math.round(x), 0, 2, H);
+  for (let y = y0; y < H; y += cell) ctx.fillRect(0, Math.round(y), W, 2);
+  ctx.restore();
+  if (o.glow) light(ctx, o.glow[0], o.glow[1], o.glow[2] || 800, o.glow[3] || 'rgba(255,90,60,1)', o.glow[4] ?? 0.18);
+  if (o.ground !== false) groundStrip(ctx, camX * zm, gy - 4 * zm, 2 * zm);
 }
 // blueprint / HUD grid backdrop
 function gridBG(ctx, t, col = 'rgba(80,160,220,0.10)', base = C.navy, cell = 60, ox = 0, oy = 0) {

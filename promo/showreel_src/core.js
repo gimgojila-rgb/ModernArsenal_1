@@ -274,6 +274,24 @@ function radar(ctx, x, y, R, t, col, a = 1, blips = []) {
   ctx.restore();
 }
 
+// HUD target glyph: curly braces around a centre pip, "{ • }". open: 1 = wide, 0 = tight
+function targetMark(ctx, x, y, s = 1, col = '#ffffff', t = 0, a = 1, open = 1) {
+  if (a <= 0.003) return;
+  const h = 46 * s, w = (22 + 26 * open) * s, u = s;
+  ctx.save(); ctx.globalAlpha *= a; ctx.strokeStyle = col; ctx.lineWidth = 5 * s; ctx.lineCap = 'square'; ctx.lineJoin = 'miter';
+  for (const sd of [-1, 1]) {
+    const bx = x + sd * w;
+    const P = [[12, -h], [0, -h + 10 * u], [0, -12 * u], [-11, 0], [0, 12 * u], [0, h - 10 * u], [12, h]];
+    ctx.beginPath();
+    P.forEach(([px, py], i) => { const X = bx - sd * (px === 12 || px === -11 ? px * u : px), Y = y + py; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+    ctx.stroke();
+  }
+  const pulse = 0.75 + 0.25 * Math.sin(t * 9);
+  ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x, y - 9 * s); ctx.lineTo(x + 9 * s, y); ctx.lineTo(x, y + 9 * s); ctx.lineTo(x - 9 * s, y); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  glow(ctx, x, y, 120 * s, col, 0.35 * pulse * a);
+}
+
 // ---------------- particles (analytic) ----------------
 // burst of square pixels from (x,y). returns nothing; everything from (t - t0)
 function burst(ctx, t, t0, seed, n, x, y, o = {}) {

@@ -124,7 +124,7 @@ function sLock(ctx, t) {
     const px = 960, gy = 860;
     ctx.save(); ctx.translate(px + 14 * vnoise(t * 0.9 + 4), 700 + 10 * vnoise(t * 0.8 + 9)); ctx.rotate(0.012 * vnoise(t * 0.6)); ctx.scale(z, z); ctx.translate(-px, -700);
     world(ctx, t, 400 + (t - t0) * 30, { sky: 'storm', groundY: gy, haze: false });
-    spr(ctx, BG.player, px, gy - 24 - 40, { s: 4 });
+    targetMark(ctx, px, gy - 70, 1.1, '#f2f8fa', t, 1, 1 - ease(bt(19), bt(31), t));
     // the Shadow drifts across the feed on its orbit
     const dk = inv(bt(21), bt(26), t);
     if (dk > 0 && dk < 1) drawDrone(ctx, 'ShadowUAV', lerp(2100, -300, dk), 420 + Math.sin(t * 2) * 8, 3.2, t, { sil: '#e4eaee' });
@@ -260,9 +260,10 @@ function apacheState(t) {
   // 360 evasive loop
   const L0 = bt(50), L1 = bt(54) - 0.1;
   if (t > L0) {
-    const ph = TAU * E.ioC(inv(L0, L1, t)), R = 330;
-    const cx = 1250, cy = 500 - R;
-    x = cx - Math.sin(ph) * R * 1.25; y = cy + Math.cos(ph) * R; tilt = ph + Math.sin(t * 1.3) * 0.015;
+    const ph = TAU * E.ioC(inv(L0, L1, t)), RX = 720, RY = 390;
+    const cx = 1250, cy = 500 - RY;
+    x = cx - Math.sin(ph) * RX; y = cy + Math.cos(ph) * RY;
+    tilt = Math.atan2(RY * Math.sin(ph), RX * Math.cos(ph)); if (ph > Math.PI) tilt += TAU;
   }
   // exit: dash left, nose down
   const X0 = bt(54) + 0.2;
@@ -271,9 +272,9 @@ function apacheState(t) {
 }
 function sApache(ctx, t) {
   const a = T.APACHE;
-  world(ctx, t, (t - a) * 260 + 3000, { sky: 'dusk', groundY: 1010, sun: [560, 760] });
-  // camera zoom out for the loop
-  const z = 1 - 0.36 * ease(bt(49) + 0.3, bt(50) + 0.1, t, E.ioC) * (1 - ease(bt(54), bt(55), t, E.ioC));
+  // camera zoom out for the loop; the grid and the ground pull back with it
+  const z = 1 - 0.5 * ease(bt(49) + 0.3, bt(50) + 0.1, t, E.ioC) * (1 - ease(bt(54), bt(55), t, E.ioC));
+  world(ctx, t, (t - a) * 260 + 3000, { sky: 'dusk', groundY: (1010 - 540 + (1 - z) * 560) * z + 540, zoom: z, glow: [1250, 520, 900, 'rgba(255,70,50,1)', 0.10] });
   ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2 + (1 - z) * 560);
   const st = apacheState(t);
   const lvl = t < a + 2 ? 1 : 0.5;
@@ -370,7 +371,7 @@ function seekerView(ctx, t, x, y, w, h, k) {   // k: dive progress 0..1
   for (let j = 0; j < 14; j++) { const d = Math.pow((j + ph) / 14, 2.2); const yy = lerp(hor, y + h + 200, d); line(ctx, x, yy, x + w, yy, 'rgba(210,225,230,0.3)', 1.5); }
   // target
   const ts = lerp(0.35, 6, E.inX(k)), ty = lerp(hor + 30, y + h * 0.55, E.ioC(k));
-  rectF(ctx, cx - 7 * ts, ty - 22 * ts, 14 * ts, 22 * ts, '#e6eef0', 0.9);
+  targetMark(ctx, cx, ty - 11 * ts, 0.3 * ts, '#eef4f6', t, 0.95, 0.3);
   brackets(ctx, cx - 16 * ts - 20, ty - 30 * ts - 20, 32 * ts + 40, 34 * ts + 40, 18, '#ffffff', 3);
   line(ctx, cx - 60 - 16 * ts, ty - 11 * ts, cx - 16 * ts - 20, ty - 11 * ts, '#fff', 2); line(ctx, cx + 16 * ts + 20, ty - 11 * ts, cx + 60 + 16 * ts, ty - 11 * ts, '#fff', 2);
   // noise
@@ -395,7 +396,7 @@ function sSpike(ctx, t) {
   const z = 1 + 0.8 * pin;
   const follow = ease(a + 0.5, a + 1.3, t, E.ioC);
   const fx = lerp(tube[0], W / 2, 1 - pin), fy = lerp(tube[1], H / 2, 1 - pin) + follow * -260;
-  world(ctx, t, (t - a) * 160 + 9000, { sky: 'dusk', groundY: 1010 + follow * 260, sun: [300, 700] });
+  world(ctx, t, (t - a) * 160 + 9000, { sky: 'dusk', groundY: 1010 + follow * 260 });
   ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-fx, -fy);
   // back-blast cloud from the canister
   for (let i = 0; i < 12; i++) {
@@ -448,7 +449,7 @@ function sDrones(ctx, t) {
   const a = T.DRONE;
   if (t < bt(66)) {
     // --- sweep past through the smoke of the Spike hit
-    world(ctx, t, (t - a) * 600 + 14000, { sky: 'dusk', groundY: 1000, sun: [1500, 760] });
+    world(ctx, t, (t - a) * 600 + 14000, { sky: 'dusk', groundY: 1000 });
     explosion(ctx, t, a, 960, 960, 1.4, 21);
     smokeTrail(ctx, t, a + 0.1, a + 3, 14, () => [960, 930], { life: 3, r0: 30, r1: 160, a: 0.8, rise: 80, shade: 'dark', seed: 8, wind: -30 });
     droneTrail(ctx, 'GrayEagle', t, tt => tt < a + 0.12 ? null : sweepEagle(tt), EAG);
@@ -480,7 +481,7 @@ function sDrones(ctx, t) {
     ctx.restore();
     // right: RQ-7B Shadow at night
     ctx.save(); ctx.beginPath(); ctx.moveTo(lerp(-400, topX, d), 0); ctx.lineTo(W, 0); ctx.lineTo(W, H); ctx.lineTo(lerp(-700, botX, d), H); ctx.closePath(); ctx.clip();
-    world(ctx, t, t * 900, { sky: 'night', groundY: 1300, ground: false, haze: false, stars: true });
+    world(ctx, t, t * 900, { sky: 'night', groundY: 1300, ground: false });
     const sp = [1420 + Math.sin(t * 1.9) * 12, 380 + Math.sin(t * 2.6) * 10];
     droneTrail(ctx, 'ShadowUAV', t, tt => [sp[0] + (t - tt) * 900, sp[1]], 5);
     drawDrone(ctx, 'ShadowUAV', sp[0], sp[1], 5, t);
@@ -498,9 +499,7 @@ function sDrones(ctx, t) {
     const fl = t > bt(70) ? Math.exp(-(t - bt(70)) * 6) : 0; if (fl > 0.01) line(ctx, topX, 0, botX, H, C.cyan, 30, fl * 0.5);
   } else {
     // --- lase, lock, linked salvo
-    world(ctx, t, 20000 + (t - bt(72)) * 90, { sky: 'dusk', groundY: 1000, sun: [1600, 800] });
-    const jump = t > 39.3 ? Math.sin(Math.PI * clamp((t - 39.3) / 0.62)) * 150 : 0;
-    const px = PLAYER[0] - 90 * ease(39.3, 39.92, t, E.lin), py = PLAYER[1] - jump;
+    world(ctx, t, 20000 + (t - bt(72)) * 90, { sky: 'dusk', groundY: 1000 });
     const s = shadowLase(t), e = eagleLase(t);
     drawDrone(ctx, 'GrayEagle', e[0], e[1], 2.2, t);
     // laser
@@ -514,7 +513,7 @@ function sDrones(ctx, t) {
       glow(ctx, PLAYER[0], PLAYER[1] - 40, 90, C.port, fl);
     }
     drawDrone(ctx, 'ShadowUAV', s[0], s[1], 3.3, t);
-    spr(ctx, BG.player, px, py - 40, { s: 4 });
+    targetMark(ctx, PLAYER[0], PLAYER[1] - 40, 1.2, t > bt(77) ? C.red : '#ffe0dc', t, t < bt(79) + 0.02 ? 1 : 1 - ease(bt(79), bt(79) + 0.2, t), 1 - ease(bt(73), bt(77), t));
     // lock ring
     const lp = ease(la0 + 0.2, lock, t, E.lin);
     if (t > la0 && t < 39.6) {
@@ -693,12 +692,12 @@ function initMontage() {
     bigWord(ctx, 'MQ-1C', age, { x: 120, y: 980, align: 'left', size: 220, kr: '그레이 이글' });
   });
   S(bt(99), 0.5, (ctx, t, age) => {        // shadow at night
-    world(ctx, t, t * 800, { sky: 'night', groundY: 1500, ground: false, stars: true });
+    world(ctx, t, t * 800, { sky: 'night', groundY: 1500, ground: false });
     drawDrone(ctx, 'ShadowUAV', 1100 - age * 100, 420, 10, t + 0.97 - age * 0.02);
     bigWord(ctx, 'RQ-7B', age, { x: W - 120, y: 980, align: 'right', size: 220, kr: '섀도', krCol: '#ffd0cc' });
   });
   S(bt(100), 0.5, (ctx, t, age) => {       // humvee headlights
-    rectF(ctx, 0, 0, W, H, '#0b0906'); strip(ctx, BG.ground, t * 100, 1, 900, 5);
+    world(ctx, t, t * 600, { sky: 'night', groundY: 960 });
     drawHumvee(ctx, 1300, 960, 7.5, { lights: 1, wheel: t * 20 });
     bigWord(ctx, 'M1151', age, { x: W - 120, y: 300, align: 'right', size: 220, col: C.amber, kr: '험비', krCol: '#ffe3b0' });
   });
@@ -714,10 +713,9 @@ function initMontage() {
     bigWord(ctx, 'NEW GEAR', age, { y: 800, size: 170, kr: '무기 · 장비 · 소환 아이템' });
   });
   S(bt(102), 0.5, (ctx, t, age) => {       // loop silhouette
-    world(ctx, t, 400, { sky: 'dusk', groundY: 1200, sun: [960, 700] });
-    light(ctx, 960, 620, 900, 'rgba(255,150,90,1)', 0.8);
+    world(ctx, t, 400 + age * 900, { sky: 'dusk', groundY: 1200 });
     const ph = Math.PI * 0.8 + age * 1.6;
-    drawApache(ctx, { x: 960, y: 480, s: 3.2, tilt: ph, t, sil: '#120a10' });
+    drawApache(ctx, { x: 960, y: 480, s: 3.2, tilt: ph, t });
     flares(ctx, t, bt(102) - 0.3, 61, 10, [1060, 560], 1, 2);
     bigWord(ctx, '360° LOOP', age, { y: 980, size: 180, kr: '회피 기동' });
   });
@@ -763,7 +761,7 @@ function sMontage(ctx, t) {
 // ======================================= SCENE 10: END CARD =======================================
 function sEnd(ctx, t) {
   const a = T.END;
-  world(ctx, t, 30000 + (t - a) * 40, { sky: 'dusk', groundY: 1080, sun: [960, 900] });
+  world(ctx, t, 30000 + (t - a) * 40, { sky: 'dusk', groundY: 1080 });
   rectF(ctx, 0, 0, W, H, '#050204', 0.45);
   light(ctx, W / 2, 820, 1000, 'rgba(255,90,50,1)', 0.5);
   // the Guardian holding behind the logo, backlit
