@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <DefineConstants>TML_2026_07;FNA</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>MSB3277;CS0618</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="src/**/*.cs" />
+    <Reference Include="/mnt/user-data/uploads/tModLoader/tModLoader.dll" />
+    <Reference Include="/mnt/user-data/uploads/tModLoader/Libraries/**/*.dll" />
+  </ItemGroup>
+</Project>
