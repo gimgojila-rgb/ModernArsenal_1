@@ -165,10 +165,11 @@ function apW(p, off) { const r = rot(off, p.tilt || 0); return [p.x + r[0] * p.s
 function drawApache(ctx, p) {
   const t = p.t, I = n => p.sil ? tint(IMG[n], p.sil) : IMG[n];
   ctx.save(); ctx.globalAlpha *= p.a ?? 1;
-  ctx.translate(p.x, p.y); ctx.rotate(p.tilt || 0); ctx.scale(p.s, p.s);
+  const D = p.model === 'D';
+  ctx.translate(p.x, p.y); ctx.rotate(p.tilt || 0); if (p.flip) ctx.scale(-1, 1); ctx.scale(p.s, p.s);
   spr(ctx, I('ApacheEBoss_Gun'), AP.GUN[0], AP.GUN[1], { ox: 33, oy: 7, r: p.gun ?? -0.14 });
-  spr(ctx, I('ApacheEBoss'), 0, 0, { ox: 186, oy: 63 });
-  spr(ctx, I('ApacheEBoss_Radar'), AP.RADAR[0], AP.RADAR[1]);
+  spr(ctx, I(D ? 'ApacheDBoss' : 'ApacheEBoss'), 0, 0, { ox: 186, oy: 63 });
+  spr(ctx, I(D ? 'ApacheDBoss_Radar' : 'ApacheEBoss_Radar'), AP.RADAR[0], AP.RADAR[1]);
   spr(ctx, I('ApacheEBoss_TailRotorBlur'), AP.TAIL[0], AP.TAIL[1], { ox: 33, oy: 33 });
   spr(ctx, I('ApacheEBoss_TailRotor'), AP.TAIL[0], AP.TAIL[1], { ox: 33, oy: 33, r: -t * ROTOR_W * 4.86, a: 0.55 });
   spr(ctx, I('ApacheEBoss_MainRotorBlur'), AP.MAIN[0], AP.MAIN[1]);

@@ -2,7 +2,7 @@
 // MODERN ARSENAL showreel - core: timing, easing, assets, drawing primitives, post-processing.
 // Every frame is a pure function of time t (seconds), so frames can be rendered in any order.
 // ---------------------------------------------------------------------------------------------
-const W = 1920, H = 1080, FPS = 60, DUR = 60;
+const W = 1920, H = 1080, FPS = 60, DUR = 76;
 const B0 = 0.085, SPB = 0.5;                     // "Low Altitude Assault": 120 BPM, first downbeat 0.085 s
 const bt = k => B0 + SPB * k;                    // time of beat k
 const TAU = Math.PI * 2;
@@ -46,7 +46,7 @@ function mk(w, h) { const c = document.createElement('canvas'); c.width = w; c.h
 function ctxOf(c) { const x = c.getContext('2d'); x.imageSmoothingEnabled = false; return x; }
 
 const IMG = {};
-const ASSETS = ['ApacheEBoss', 'ApacheEBoss_Gun', 'ApacheEBoss_MainRotor', 'ApacheEBoss_MainRotorBlur', 'ApacheEBoss_Radar',
+const ASSETS = ['ApacheDBoss', 'ApacheDBoss_Radar', 'ApacheEBoss', 'ApacheEBoss_Gun', 'ApacheEBoss_MainRotor', 'ApacheEBoss_MainRotorBlur', 'ApacheEBoss_Radar',
   'ApacheEBoss_TailRotor', 'ApacheEBoss_TailRotorBlur', 'CutsceneStripes', 'GrayEagle', 'GrayEagle_MarksL',
   'GrayEagle_Prop', 'GrayEagle_PropBlur', 'GrayEagle_Slime', 'ShadowUAV', 'ShadowUAV_Prop', 'ShadowUAV_PropBlur',
   'ShadowUAV_Slime', 'SpikeNLOS_Deploy', 'HumveeChinook_Glow', 'HumveeBoss', 'HumveeBoss_Antenna', 'HumveeBoss_Body',

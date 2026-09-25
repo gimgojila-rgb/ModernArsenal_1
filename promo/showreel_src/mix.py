@@ -10,7 +10,7 @@ from scipy.signal import butter, sosfilt, fftconvolve
 FF = '/usr/local/lib/python3.11/dist-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2'
 REPO = '/home/user/ModernArsenal_1'
 SR = 48000
-DUR = 60.0
+DUR = 76.0
 HERE = os.path.dirname(os.path.abspath(__file__))
 rng = np.random.default_rng(7)
 
@@ -118,6 +118,12 @@ def s_crank():
         tt = t(0.13); c = np.sin(2 * np.pi * (180 + 80 * tt / 0.13) * tt) * np.sin(np.pi * tt / 0.13) * 0.5 + lp(noise(0.13), 400) * 0.3
         o = int(i * 0.125 * SR); x[o:o + len(c)] += c
     return x
+def s_rocket():
+    n = 0.35; tt = t(n); a = np.minimum(1, tt / 0.01) * np.exp(-tt * 7)
+    return norm(bp(noise(n), 600, 6000) * a + lp(noise(n), 400) * a * 0.6)
+def s_pop():
+    k = s_kick(130, 45, 0.5, 8); n = bp(noise(0.5), 300, 4000) * env_exp(0.5, 14) * 0.8
+    return norm(k + n)
 def s_alarm():
     tt = t(0.24); f = np.where(tt < 0.12, 880, 660)
     return fade(np.sign(np.sin(2 * np.pi * np.cumsum(f) / SR)) * 0.18, 0.003, 0.02)
@@ -171,14 +177,16 @@ def sound(k, i, cues, idx):
     if k == 'm2': return fade(norm(m2[int(0.22 * SR):int(1.35 * SR)]), 0.002, 0.08)
     if k == 'drive': return fade(norm(engine[int(14.2 * SR):int(15.4 * SR)]), 0.02, 0.3)
     if k == 'alarm': return s_alarm()
+    if k == 'rocket': return s_rocket()
+    if k == 'pop': return s_pop()
     if k == 'shimmer': return s_shimmer()
     raise KeyError(k)
 
 # per-cue stereo pan (-1 left .. 1 right)
-PAN = {'passEagle': 'sweepRL', 'passShadow': 'sweepRL', 'whoosh': 'sweepRL', 'gun30': -0.3, 'm2': -0.35, 'flares': 0.3, 'missile': -0.1, 'rotor': 0.25, 'ping': -0.1}
+PAN = {'rocket': 0.2, 'passEagle': 'sweepRL', 'passShadow': 'sweepRL', 'whoosh': 'sweepRL', 'gun30': -0.3, 'm2': -0.35, 'flares': 0.3, 'missile': -0.1, 'rotor': 0.25, 'ping': -0.1}
 GAIN = {'boom': 0.9, 'explode': 0.95, 'hit': 0.6, 'stamp': 0.5, 'beep': 0.35, 'chirp': 0.3, 'tick': 0.5, 'lock': 0.35, 'riser': 0.55, 'swish': 0.5,
         'whoosh': 0.6, 'rotor': 0.5, 'ping': 0.45, 'gun30': 0.6, 'flares': 0.4, 'eject': 0.6, 'missile': 0.6, 'static': 0.35, 'passEagle': 0.8,
-        'passShadow': 0.8, 'laser': 0.3, 'clank': 0.42, 'crank': 0.45, 'engine': 0.6, 'm2': 0.6, 'drive': 0.55, 'alarm': 0.35, 'shimmer': 0.5, 'boot': 0.5}
+        'passShadow': 0.8, 'laser': 0.3, 'clank': 0.42, 'crank': 0.45, 'engine': 0.6, 'm2': 0.6, 'drive': 0.55, 'alarm': 0.35, 'rocket': 0.5, 'pop': 0.55, 'shimmer': 0.5, 'boot': 0.5}
 
 def main():
     cues = json.load(open(os.path.join(HERE, 'cues.json')))
@@ -186,7 +194,7 @@ def main():
     N = int(DUR * SR)
     # ---- music edit
     song = load(f'{REPO}/guardian_audio/Low_Altitude_Assault.mp3', 2)
-    J1, J2 = 48.06, 168.06
+    J1, J2 = 64.06, 168.06
     a = song[:int(J1 * SR)]
     b = song[int(J2 * SR):]
     xf = int(0.012 * SR)

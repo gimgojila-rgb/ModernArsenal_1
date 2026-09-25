@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------------------------------------
 const CUES = [];                          // sound design cues for the audio mix: {t, k, g}
 const cue = (t, k, g = 1) => CUES.push({ t: +t.toFixed(4), k, g });
-const T = { BOOT: 0, LOCK: bt(16), TITLE: bt(32), APACHE: bt(40), SPIKE: bt(56), DRONE: bt(64), HUMVEE: bt(80), BREAK: bt(92), MONT: 48.06, END: 55.03 };
+const T = { BOOT: 0, LOCK: bt(16), TITLE: bt(32), APACHE: bt(40), SPIKE: bt(56), DRONE: bt(64), HUMVEE: bt(80), BREAK: bt(92), DPACHE: 48.06, MONT: 64.06, END: 71.03 };
 
 // ---------------- text helpers that need offscreen buffers ----------------
 const _tc = new Map();
@@ -61,7 +61,7 @@ function sBoot(ctx, t) {
   }
   FX.scan = 0.18;
   // datalink log
-  const LOG = ['MODERN ARSENAL // TACTICAL DATALINK  v0.5.9', '> AH-64E GUARDIAN ........... LINK OK', '> MQ-1C GRAY EAGLE .......... LINK OK',
+  const LOG = ['MODERN ARSENAL // TACTICAL DATALINK  v0.5.9', '> AH-64D APACHE ............. LINK OK', '> AH-64E GUARDIAN ........... LINK OK', '> MQ-1C GRAY EAGLE .......... LINK OK',
     '> RQ-7B SHADOW .............. LINK OK', '> M1151 HUMVEE .............. LINK OK', '> SPIKE NLOS ................ ARMED'];
   LOG.forEach((s, i) => {
     const t0 = bt(1 + i), p = ease(t0, t0 + 0.35, t, E.lin);
@@ -650,12 +650,272 @@ function sBreak(ctx, t) {
   kr(ctx, '적 항공기 접근 중', W / 2, 750, { align: 'center', col: C.red, size: 30, a: ease(a + 0.5, a + 0.9, t) });
   cutFrame(ctx, t, ease(a, a + 0.3, t, E.outX), C.red, 'WARNING', '경고', t - a);
   // shutters close on the downbeat of the last phrase
-  const sh = ease(bt(95), T.MONT, t, E.inX);
+  const sh = ease(bt(95), T.DPACHE, t, E.inX);
   if (sh > 0) {
     const hh = sh * H / 2;
     rectF(ctx, 0, 0, W, hh, '#120405'); stripes(ctx, 0, hh - 24, W, 24, C.red, t * 200, 1.7);
     rectF(ctx, 0, H - hh, W, hh, '#120405'); stripes(ctx, 0, H - hh, W, 24, C.red, -t * 200, 1.7);
   }
+}
+
+// ======================================= SCENE 8b: AH-64D APACHE =======================================
+// the original boss: reveal, sortie, long charges, ram charge with rockets, Hydra rain, strafing run
+const DS = 2.2, DG = 1000, OLIVE = '#a4c250';
+const TGT = [960, DG - 72];
+function hydra(ctx, x, y, ang, s = 1.6) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+  rectF(ctx, -10 * s, -1.5 * s, 20 * s, 3 * s, '#dcdcd0'); rectF(ctx, 7 * s, -1.5 * s, 3 * s, 3 * s, '#4c4c44'); rectF(ctx, -10 * s, -3 * s, 3 * s, 6 * s, '#8a8a80');
+  ctx.restore();
+  glow(ctx, x - Math.cos(ang) * 12 * s, y - Math.sin(ang) * 12 * s, 46 * s, '#ffb050', 0.95);
+}
+function band(ctx, x0, y0, x1, y1, w, t, a, col = C.red) {           // telegraphed corridor with flowing chevrons
+  if (a <= 0.003) return;
+  const ang = Math.atan2(y1 - y0, x1 - x0), L = Math.hypot(x1 - x0, y1 - y0);
+  ctx.save(); ctx.translate(x0, y0); ctx.rotate(ang); ctx.globalAlpha *= a;
+  rectF(ctx, 0, -w / 2, L, w, col, 0.14);
+  line(ctx, 0, -w / 2, L, -w / 2, col, 3, 0.85); line(ctx, 0, w / 2, L, w / 2, col, 3, 0.85);
+  ctx.strokeStyle = col; ctx.lineWidth = 7; ctx.globalAlpha *= 0.55;
+  const sp = 110, off = (t * 1100) % sp;
+  for (let d = off; d < L; d += sp) { ctx.beginPath(); ctx.moveTo(d - 22, -w * 0.24); ctx.lineTo(d + 4, 0); ctx.lineTo(d - 22, w * 0.24); ctx.stroke(); }
+  ctx.restore();
+}
+function edgeArrow(ctx, side, y, t, a) {                               // blinking arrow on the screen edge
+  if (a <= 0.003 || Math.floor(t * 8) % 2) return;
+  const x = side < 0 ? 56 : W - 56;
+  ctx.save(); ctx.globalAlpha *= a; ctx.fillStyle = C.red; ctx.beginPath();
+  ctx.moveTo(x + side * 34, y); ctx.lineTo(x - side * 22, y - 44); ctx.lineTo(x - side * 22, y + 44); ctx.closePath(); ctx.fill(); ctx.restore();
+  glow(ctx, x, y, 240, C.red, 0.55 * a);
+}
+function approachBanner(ctx, t, a) {
+  if (a <= 0.003) return;
+  const on = Math.floor(t * 6) % 2 === 0;
+  ctx.save(); ctx.globalAlpha *= a;
+  plate(ctx, W / 2 - 340, 300, 680, 92, { fill: 'rgba(36,6,6,0.88)', line: C.red, lw: 3, c: 16 });
+  stripes(ctx, W / 2 - 332, 308, 44, 76, C.red, t * 60, 1.2); stripes(ctx, W / 2 + 288, 308, 44, 76, C.red, -t * 60, 1.2);
+  txt(ctx, 'HIGH-SPEED APPROACH', W / 2, 344, { f: 'Chakra', size: 34, w: 700, col: on ? '#ffffff' : '#ffb0a8', align: 'center', track: 4 });
+  kr(ctx, '고속 접근 경보', W / 2, 378, { align: 'center', size: 24, col: C.red });
+  ctx.restore();
+}
+function dCaption(ctx, t, t0, t1, big, sub, k) {
+  const age = t - t0; if (age < 0 || t > t1) return;
+  ctx.save(); ctx.globalAlpha = 1 - ease(t1 - 0.2, t1, t);
+  rectF(ctx, 80, 104, 8, 176, OLIVE);
+  slam(ctx, big, 110, 186, age, { f: 'Anton', size: 96, col: C.white, track: 3, from: 1.6 });
+  decode(ctx, sub, 114, 234, ease(t0 + 0.1, t0 + 0.6, t, E.lin), { f: 'Mono', size: 22, w: 700, col: OLIVE, track: 2 }, big.length);
+  if (k) kr(ctx, k, 114, 272, { size: 24, col: '#e6f2c8', a: ease(t0 + 0.3, t0 + 0.6, t) });
+  ctx.restore();
+}
+function linPath(t, t0, t1, a, b, tilt, flip) { if (t < t0 || t > t1) return null; const k = inv(t0, t1, t); return { x: lerp(a[0], b[0], k), y: lerp(a[1], b[1], k), tilt, flip }; }
+function drawD(ctx, st, t, ghosts = 0) {
+  if (!st) return;
+  for (let k = ghosts; k >= 1; k--) {
+    const g = st.path ? st.path(t - k * 0.018) : null;
+    if (g) drawApache(ctx, { ...g, model: 'D', s: DS, t, a: 0.16 * (1 - k / (ghosts + 1)), lights: false });
+  }
+  drawApache(ctx, { ...st, model: 'D', s: DS, t });
+}
+// --- reveal + sortie
+function dReveal(t) {
+  const a = T.DPACHE, u = ease(a, a + 1.2, t, E.outC);
+  let x = lerp(2500, 1220, u), y = lerp(860, 540, u);
+  let tilt = -0.32 * (1 - ease(a + 0.4, a + 1.0, t, E.ioC)) + 0.22 * ease(a + 0.7, a + 1.1, t, E.ioC) * (1 - ease(a + 1.3, a + 2.2, t, E.ioC));
+  y += Math.sin(t * 2.2) * 7; tilt += Math.sin(t * 1.4) * 0.015;
+  const c0 = bt(102);                                       // sortie: straight climb out of the map
+  if (t > c0) { const k = t - c0; y -= 60 * k + 1500 * k * k; tilt += -0.05 * ease(c0, c0 + 0.2, t); }
+  return { x, y, tilt };
+}
+// --- long charges: horizontal from the right, dive from the upper left, low from the left
+const LC = [
+  { tel: bt(104), go: bt(104) + 0.75, dur: 0.4, a: [2350, TGT[1] - 20], b: [-950, TGT[1] - 20], tilt: -0.14, flip: false, side: 1, ay: TGT[1] - 20 },
+  { tel: bt(106) + 0.25, go: bt(108), dur: 0.36, a: [-640, -330], b: [2500, 2140], tilt: 0.62, flip: true, side: -1, ay: 240 },
+  { tel: bt(109), go: bt(110) + 0.25, dur: 0.4, a: [-950, TGT[1] - 30], b: [2400, TGT[1] - 30], tilt: 0.14, flip: true, side: -1, ay: TGT[1] - 30 },
+];
+function lcState(t) {
+  for (const c of LC) { const st = linPath(t, c.go, c.go + c.dur, c.a, c.b, c.tilt, c.flip); if (st) return { ...st, path: tt => linPath(tt, c.go, c.go + c.dur, c.a, c.b, c.tilt, c.flip) }; }
+  return null;
+}
+// --- ram charge with rockets thrown out both sides
+const RAMS = [{ t0: bt(113) + 0.2, t1: bt(114) + 0.15, x0: 1480, x1: 620, flip: false }, { t0: bt(114) + 0.8, t1: bt(115) + 0.75, x0: 620, x1: 1480, flip: true }];
+const RAM_Y = 640;
+function ramState(t) {
+  const a = bt(112);
+  if (t < a || t > bt(116) + 0.2) return null;
+  let x = lerp(2400, 1480, ease(a, a + 0.35, t, E.outC)), flip = false, tilt = 0.02 + Math.sin(t * 1.4) * 0.015;
+  for (const r of RAMS) {
+    if (t >= r.t0) { x = lerp(r.x0, r.x1, ease(r.t0, r.t1, t, E.ioC)); flip = r.flip; tilt = (r.flip ? 1 : -1) * 0.2 * Math.sin(Math.PI * inv(r.t0, r.t1, t)); }
+  }
+  if (t > bt(116) - 0.2) { const k = ease(bt(116) - 0.2, bt(116) + 0.2, t, E.inC); x += k * 1400; tilt = 0.25 * k; flip = true; }
+  return { x, y: RAM_Y + Math.sin(t * 2.3) * 6, tilt, flip };
+}
+function ramRockets() {
+  const out = [];
+  RAMS.forEach((r, j) => {
+    for (let i = 0; i * 5 / 60 < r.t1 - r.t0; i++) {
+      const ts = r.t0 + i * 5 / 60, k = E.ioC(inv(r.t0, r.t1, ts));
+      const x = lerp(r.x0, r.x1, k), dir = r.flip ? 0 : Math.PI, th = (30 + 20 * hr(j * 31 + i)) * Math.PI / 180;
+      out.push({ ts, x, y: RAM_Y + 30, ang: dir + (i % 2 ? th : -th) * (r.flip ? -1 : 1), down: i % 2 === 1 });
+    }
+  });
+  return out;
+}
+let RAMR = null;
+// --- Hydra rain
+const HY_N = 38, HY_L = bt(118), HY_DT = 2 / 60, HY_FL = 0.42;
+function hydraOrigin(t) { const u = ease(bt(116), bt(116) + 0.5, t, E.outC); let x = lerp(2400, 1180, u), y = lerp(80, 230, u); if (t > bt(122) + 0.2) { const k = t - bt(122) - 0.2; y -= 1400 * k * k; x -= 300 * k; } return { x, y: y + Math.sin(t * 2) * 5, tilt: -0.1 }; }
+function hydraTarget(i) { return [240 + 1440 * (i / (HY_N - 1)) + hs(i * 7.7) * 30, DG - 4]; }
+// --- strafing run
+const SR0 = bt(124) + 0.2, SR1 = bt(127) + 0.2;
+function strafeState(t) { return linPath(t, SR0, SR1, [2450, DG - 250], [-950, DG - 250], -0.12, false); }
+function smallBoom(ctx, t, t0, x, y, seed, s = 1) {
+  const age = t - t0; if (age < 0 || age > 1.2) return;
+  light(ctx, x, y, 260 * s, 'rgba(255,170,90,1)', 0.9 * Math.exp(-age * 7));
+  for (let i = 0; i < 4; i++) { const q = clamp(age / (0.5 + hr(seed + i) * 0.6)); if (q >= 1) continue; puff(ctx, x + hs(seed + i) * 26 * s, y - 14 * s - age * 60 * s - i * 8, (14 + 16 * q) * s, q < 0.2 ? 'hot' : q < 0.45 ? 'fire' : 'dark', 1 - q); }
+  burst(ctx, t, t0, seed, 14, x, y, { speed: 700 * s, life: 0.6, g: 1400, size: 5 * s, add: true, col: q => q > 0.5 ? '#fff0c0' : '#ff8a30', a0: Math.PI * 1.1, a1: Math.PI * 1.9 });
+  burst(ctx, t, t0, seed + 9, 8, x, y, { speed: 500 * s, life: 0.9, g: 1600, size: 6 * s, col: '#6a4a30', a0: Math.PI * 1.15, a1: Math.PI * 1.85 });
+}
+function sDpache(ctx, t) {
+  const a = T.DPACHE;
+  world(ctx, t, 50000 + (t - a) * 180, { sky: 'dusk', groundY: DG, glow: [960, 600, 1000, 'rgba(160,200,80,1)', 0.06] });
+  // target on the ground once the attacks start
+  const tg = ease(bt(104) - 0.3, bt(104), t) * (1 - ease(bt(116) - 0.3, bt(116), t)) + ease(bt(124), bt(124) + 0.2, t) * (1 - ease(T.MONT - 0.2, T.MONT, t));
+  targetMark(ctx, TGT[0], TGT[1], 1.1, '#f2f8fa', t, tg, 0.6);
+
+  // ---------- reveal & sortie
+  if (t < bt(104)) {
+    const st = dReveal(t);
+    if (t > bt(102)) flares(ctx, t, bt(102) + 0.05, 83, 8, tt => [dReveal(tt).x + 40, dReveal(tt).y + 60], 1, 1.3);
+    apacheVapor(ctx, t, tt => dReveal(tt), DS, t < a + 1.2 || t > bt(102) ? 1 : 0.45);
+    drawD(ctx, st, t);
+    const tp = ease(bt(97), bt(97) + 0.4, t, E.outX) * (1 - ease(bt(103), bt(104), t));
+    if (tp > 0) {
+      ctx.save(); ctx.globalAlpha = tp; ctx.translate(-(1 - tp) * 200, 0);
+      rectF(ctx, 80, 92, 8, 128, OLIVE);
+      txt(ctx, 'AH-64D APACHE', 110, 170, { f: 'Anton', size: 96, col: C.white, track: 3 });
+      plate(ctx, 112, 190, 92, 34, { fill: OLIVE, c: 8 });
+      txt(ctx, 'BOSS', 158, 215, { f: 'Mono', size: 20, w: 700, col: '#16200a', align: 'center', track: 3 });
+      kr(ctx, '아파치 D형  ·  첫 번째 보스', 222, 216, { size: 24, col: '#e6f2c8' });
+      statBar(ctx, 114, 820, 560, 'HULL', 46000, 46000, ease(bt(98), bt(99), t, E.lin), OLIVE);
+      spec(ctx, 114, 890, 'PHASES', '4  //  SPEED x1.0 > x1.4', ease(bt(99), bt(100), t, E.lin), OLIVE);
+      spec(ctx, 114, 970, 'LOADOUT', 'HYDRA x38  //  HELLFIRE x8', ease(bt(100), bt(101), t, E.lin), OLIVE);
+      ctx.restore();
+    }
+    const sp = t - bt(102);
+    if (sp > 0) {
+      ctx.save(); ctx.globalAlpha = 1 - ease(bt(104) - 0.15, bt(104), t);
+      slam(ctx, 'SORTIE', W - 110, 900, sp, { f: 'Anton', size: 120, col: C.white, align: 'right', track: 4, from: 1.7 });
+      kr(ctx, '출격 · 맵 밖으로 상승 이탈', W - 110, 950, { align: 'right', size: 26, col: '#e6f2c8', a: ease(bt(102) + 0.1, bt(102) + 0.4, t) });
+      ctx.restore();
+    }
+  }
+  // ---------- long charges
+  else if (t < bt(112)) {
+    for (const c of LC) {
+      const ta = ease(c.tel, c.tel + 0.15, t) * (1 - ease(c.go + c.dur * 0.6, c.go + c.dur, t));
+      if (ta > 0) {
+        band(ctx, c.a[0], c.a[1], c.b[0], c.b[1], 190, t, ta);
+        edgeArrow(ctx, c.side, c.ay, t, ta * (t < c.go ? 1 : 0));
+        approachBanner(ctx, t, ta * (t < c.go + 0.1 ? 1 : 0));
+      }
+    }
+    const st = lcState(t);
+    if (st) {
+      for (let i = 0; i < 26; i++) { const y = st.y - 200 + hr(i * 3.3) * 400, x = (st.x + (st.flip ? -1 : 1) * (200 + hr(i) * 900)); line(ctx, x, y, x + (st.flip ? -1 : 1) * 380, y, '#ffffff', 2, 0.18); }
+      drawD(ctx, st, t, 5);
+    }
+    dCaption(ctx, t, bt(104), bt(112), 'LONG CHARGE', 'THROUGH YOU, OFF THE MAP, BACK IN FROM ANY SIDE', '데오갓식 긴 돌진 · 왕복 최대 4회');
+  }
+  // ---------- ram charge + rockets
+  else if (t < bt(116)) {
+    if (!RAMR) RAMR = ramRockets();
+    const st = ramState(t);
+    for (const [i, r] of RAMS.entries()) band(ctx, r.x0, RAM_Y, r.x1 + (r.flip ? 380 : -380), RAM_Y, 150, t, ease(r.t0 - 0.45, r.t0 - 0.3, t) * (1 - ease(r.t0, r.t0 + 0.15, t)));
+    for (const [i, r] of RAMR.entries()) {
+      const age = t - r.ts; if (age < 0) continue;
+      const v = 1700, dx = Math.cos(r.ang), dy = Math.sin(r.ang);
+      const tHit = r.down ? (DG - r.y) / (v * dy) : 9;
+      const path = tt => { const g = Math.min(tt - r.ts, tHit); return g < 0 ? null : [r.x + dx * v * g, r.y + dy * v * g]; };
+      smokeTrail(ctx, t, r.ts, r.ts + Math.min(tHit, 0.8), 40, path, { life: 0.8, r0: 5, r1: 22, a: 0.55, rise: 12, seed: 300 + i });
+      if (age < tHit && age < 0.8) { const p = path(t); hydra(ctx, p[0], p[1], r.ang, 1.4); }
+      if (r.down) smallBoom(ctx, t, r.ts + tHit, r.x + dx * v * tHit, DG - 6, 500 + i, 1);
+    }
+    if (st) drawD(ctx, { ...st, path: tt => ramState(tt) }, t, RAMS.some(r => t > r.t0 && t < r.t1) ? 4 : 0);
+    dCaption(ctx, t, bt(112), bt(116), 'RAM CHARGE', 'SHORT DASH, ROCKETS THROWN OUT BOTH SIDES', '짧은 돌진 + 양옆으로 로켓 살포');
+  }
+  // ---------- Hydra rain
+  else if (t < bt(124)) {
+    const st = hydraOrigin(t);
+    const pod = [st.x - 70 * DS * 0.5, st.y + 40];
+    for (let i = 0; i < HY_N; i++) {
+      const tl = bt(116) + 0.55 + i * 0.012, tr = HY_L + i * HY_DT, tg2 = hydraTarget(i);
+      const la = ease(tl, tl + 0.08, t) * (1 - ease(tr + HY_FL * 0.6, tr + HY_FL, t));
+      const o0 = [1180 - 35 * DS * 0.5, 230 + 40];
+      if (la > 0) line(ctx, o0[0], o0[1], tg2[0], tg2[1], C.red, 2, 0.55 * la, [14, 10]);
+      if (la > 0) { rectF(ctx, tg2[0] - 10, tg2[1] - 2, 20, 4, C.red, la * 0.8); }
+      const age = t - tr;
+      if (age >= 0 && age < HY_FL) {
+        const k = age / HY_FL, p = [lerp(o0[0], tg2[0], k), lerp(o0[1], tg2[1], k)];
+        smokeTrail(ctx, t, tr, tr + HY_FL, 50, tt => { const kk = clamp((tt - tr) / HY_FL); return [lerp(o0[0], tg2[0], kk), lerp(o0[1], tg2[1], kk)]; }, { life: 0.5, r0: 4, r1: 16, a: 0.4, rise: 8, seed: 700 + i });
+        hydra(ctx, p[0], p[1], Math.atan2(tg2[1] - o0[1], tg2[0] - o0[0]), 1.3);
+      }
+      smallBoom(ctx, t, tr + HY_FL, tg2[0], tg2[1], 900 + i, 0.9);
+    }
+    drawD(ctx, st, t);
+    const left = HY_N - clamp(Math.floor((t - HY_L) / HY_DT) + 1, 0, HY_N);
+    dCaption(ctx, t, bt(116), bt(124), 'HYDRA RAIN', 'EVERY TRACK DRAWN FIRST, THEN 38 ROCKETS DOWN THEM', '궤적을 먼저 전부 깔고, 그 선 그대로 38발');
+    if (t > bt(116) + 0.3) {
+      txt(ctx, 'HYDRA', W - 440, 180, { f: 'Mono', size: 22, w: 700, col: OLIVE, track: 3, a: 1 - ease(bt(123), bt(124), t) });
+      txt(ctx, String(left).padStart(2, '0') + ' / 38', W - 110, 180, { f: 'Mono', size: 40, w: 700, col: C.white, align: 'right', a: 1 - ease(bt(123), bt(124), t) });
+    }
+  }
+  // ---------- strafing run
+  else {
+    const st = strafeState(t);
+    if (st) {
+      const aim = st.x - 360;
+      for (let j = 0; j < 40; j++) {
+        const tb = SR0 + j * 0.05, age = t - tb; if (age < 0 || tb > SR1) continue;
+        const sb = strafeState(tb); if (!sb) continue;
+        const mx = sb.x - 105 * DS, my = sb.y + 36 * DS, hx = sb.x - 360, hy = DG - 6;
+        if (age < 0.12) { const k = age / 0.12; tracer(ctx, lerp(mx, hx, k), lerp(my, hy, k), lerp(mx, hx, Math.max(0, k - 0.3)), lerp(my, hy, Math.max(0, k - 0.3)), '#ffcc66', 3); }
+        if (hx > -50 && hx < W + 50) {
+          burst(ctx, t, tb + 0.12, 1200 + j, 6, hx, hy, { speed: 600, life: 0.45, g: 1500, size: 5, add: true, col: '#ffd890', a0: Math.PI * 1.1, a1: Math.PI * 1.9 });
+          if (age > 0.12 && age < 1.4) puff(ctx, hx - (age - 0.12) * 40, hy - 16 - (age - 0.12) * 50, 14 + (age - 0.12) * 40, 'dust', 0.7 * (1 - (age - 0.12) / 1.3));
+        }
+      }
+      const g = st.x - 105 * DS;
+      if (Math.floor(t * 60) % 4 < 2) muzzle(ctx, g - 20, st.y + 36 * DS, -0.55 + Math.PI, 1.6, t, 4);
+      drawD(ctx, { ...st, path: strafeState }, t, 3);
+    }
+    dCaption(ctx, t, bt(124), T.MONT + 0.2, 'STRAFING RUN', 'LOW ACROSS THE FLOOR, GUN AND ROCKETS', '저공 기총소사 돌파');
+  }
+  // shutters opening out of the WARNING break
+  const op = 1 - ease(a, a + 0.35, t, E.outX);
+  if (op > 0) {
+    const hh = op * H / 2;
+    rectF(ctx, 0, 0, W, hh, '#120405'); stripes(ctx, 0, hh - 24, W, 24, C.red, t * 200, 1.7);
+    rectF(ctx, 0, H - hh, W, hh, '#120405'); stripes(ctx, 0, H - hh, W, 24, C.red, -t * 200, 1.7);
+  }
+}
+function dCues() {
+  const a = T.DPACHE;
+  impact(a, { shake: 26, ca: 9, flash: 0.35, zoom: 0.05, dec: 4.5 });
+  cue(a, 'boom', 1.0); cue(a + 0.05, 'rotor', 0.8);
+  for (let k = 97; k <= 101; k++) cue(bt(k), 'chirp', 0.45);
+  cue(bt(102), 'whoosh', 0.9); cue(bt(102) + 0.05, 'flares', 0.6); impact(bt(102), { shake: 8, ca: 3 });
+  for (const c of LC) {
+    for (let i = 0; i < 3; i++) cue(c.tel + i * 0.25, 'alarm', 0.5);
+    cue(c.go - 0.1, 'whoosh', 1.0);
+    const tc = c.go + c.dur * (c.flip ? (c.tilt > 0.3 ? 0.55 : 0.56) : 0.42);
+    impact(tc, { shake: 24, ca: 8, zoom: 0.03, dec: 6 }); cue(tc, 'hit', 0.9);
+  }
+  if (!RAMR) RAMR = ramRockets();
+  for (const r of RAMS) { cue(r.t0 - 0.45, 'alarm', 0.4); cue(r.t0, 'whoosh', 0.7); impact(r.t0 + 0.1, { shake: 10, ca: 4 }); }
+  for (const r of RAMR) { cue(r.ts, 'rocket', 0.35); if (r.down) { const tHit = (DG - r.y) / (1700 * Math.sin(r.ang)); cue(r.ts + tHit, 'pop', 0.5); } }
+  cue(bt(116), 'whoosh', 0.6); cue(bt(116) + 0.55, 'chirp', 0.5);
+  for (let i = 0; i < HY_N; i++) { cue(HY_L + i * HY_DT, 'rocket', 0.18); cue(HY_L + i * HY_DT + HY_FL, 'pop', 0.3); if (i % 6 === 0) impact(HY_L + i * HY_DT + HY_FL, { shake: 7, ca: 2 }); }
+  cue(bt(124), 'whoosh', 0.8); cue(SR0 + 0.4, 'gun30', 0.8); cue(SR0 + 0.9, 'gun30', 0.8); cue(SR0 + 1.4, 'gun30', 0.7);
+  for (let j = 0; j < 40; j += 3) cue(SR0 + j * 0.05 + 0.12, 'pop', 0.2);
+  impact(SR0 + 0.8, { shake: 12, ca: 4 });
 }
 
 // ======================================= SCENE 9: MONTAGE =======================================
@@ -669,7 +929,7 @@ const SHOTS = [];
 function initMontage() {
   const m = T.MONT;
   const S = (t0, dur, fn) => SHOTS.push({ t0, t1: t0 + dur, fn });
-  S(m, bt(97) - m, (ctx, t, age) => {       // 30mm
+  S(m, bt(129) - m, (ctx, t, age) => {       // 30mm
     world(ctx, t, t * 300, { sky: 'dusk', groundY: 1400 });
     const p = { x: 1330, y: 400, s: 6, tilt: 0.02, t, gun: -0.25 };
     drawApache(ctx, p);
@@ -678,30 +938,30 @@ function initMontage() {
     for (let k = 0; k < 5; k++) { const d0 = ((age * 60 + k * 5) % 25) / 25 * 1400; tracer(ctx, mz[0] - Math.cos(ang) * d0, mz[1] - Math.sin(ang) * d0, mz[0] - Math.cos(ang) * (d0 + 200), mz[1] - Math.sin(ang) * (d0 + 200), '#ffcc66', 5); }
     bigWord(ctx, '30MM', age, { x: 120, y: 900, align: 'left', size: 260, kr: 'M230 체인건' });
   });
-  S(bt(97), 0.5, (ctx, t, age) => {        // spike
+  S(bt(129), 0.5, (ctx, t, age) => {        // spike
     world(ctx, t, t * 200 + 500, { sky: 'dusk', groundY: 1300 });
     const x = 1300 - age * 1400, y = 700 - age * 1000;
-    smokeTrail(ctx, t, bt(97) - 0.4, bt(97) + 0.5, 60, tt => [1300 - (tt - bt(97)) * 1400 + 40, 700 - (tt - bt(97)) * 1000 + 30], { life: 0.9, r0: 20, r1: 90, a: 0.8, rise: 5, seed: 12 });
+    smokeTrail(ctx, t, bt(129) - 0.4, bt(129) + 0.5, 60, tt => [1300 - (tt - bt(129)) * 1400 + 40, 700 - (tt - bt(129)) * 1000 + 30], { life: 0.9, r0: 20, r1: 90, a: 0.8, rise: 5, seed: 12 });
     drawSpike(ctx, x, y, Math.atan2(-1000, -1400), 6, 4, t, true);
     bigWord(ctx, 'SPIKE NLOS', age, { x: W - 120, y: 950, align: 'right', size: 200, kr: '대전차 유도탄' });
   });
-  S(bt(98), 0.5, (ctx, t, age) => {        // gray eagle
+  S(bt(130), 0.5, (ctx, t, age) => {        // gray eagle
     world(ctx, t, t * 3000, { sky: 'day', groundY: 1500, ground: false });
     for (let i = 0; i < 24; i++) { const y = hr(i * 3.3) * H, x = W - ((t * 6000 + hr(i) * 3000) % (W + 1400)); line(ctx, x, y, x + 400, y, '#fff', 2, 0.35); }
     drawDrone(ctx, 'GrayEagle', 900 + age * 120, 460, 6.5, t);
     bigWord(ctx, 'MQ-1C', age, { x: 120, y: 980, align: 'left', size: 220, kr: '그레이 이글' });
   });
-  S(bt(99), 0.5, (ctx, t, age) => {        // shadow at night
+  S(bt(131), 0.5, (ctx, t, age) => {        // shadow at night
     world(ctx, t, t * 800, { sky: 'night', groundY: 1500, ground: false });
     drawDrone(ctx, 'ShadowUAV', 1100 - age * 100, 420, 10, t + 0.97 - age * 0.02);
     bigWord(ctx, 'RQ-7B', age, { x: W - 120, y: 980, align: 'right', size: 220, kr: '섀도', krCol: '#ffd0cc' });
   });
-  S(bt(100), 0.5, (ctx, t, age) => {       // humvee headlights
+  S(bt(132), 0.5, (ctx, t, age) => {       // humvee headlights
     world(ctx, t, t * 600, { sky: 'night', groundY: 960 });
     drawHumvee(ctx, 1300, 960, 7.5, { lights: 1, wheel: t * 20 });
     bigWord(ctx, 'M1151', age, { x: W - 120, y: 300, align: 'right', size: 220, col: C.amber, kr: '험비', krCol: '#ffe3b0' });
   });
-  S(bt(101), 0.5, (ctx, t, age) => {       // items
+  S(bt(133), 0.5, (ctx, t, age) => {       // items
     gridBG(ctx, t, 'rgba(80,160,220,0.10)', C.navy, 60);
     const items = ['M230ChainGun', 'Mk19Launcher', 'GuardianHelmet', 'GuardianSummon', 'GrayEagleTerminal', 'GrayEagleBuff'];
     items.forEach((n, i) => {
@@ -712,14 +972,14 @@ function initMontage() {
     });
     bigWord(ctx, 'NEW GEAR', age, { y: 800, size: 170, kr: '무기 · 장비 · 소환 아이템' });
   });
-  S(bt(102), 0.5, (ctx, t, age) => {       // loop silhouette
+  S(bt(134), 0.5, (ctx, t, age) => {       // loop silhouette
     world(ctx, t, 400 + age * 900, { sky: 'dusk', groundY: 1200 });
     const ph = Math.PI * 0.8 + age * 1.6;
     drawApache(ctx, { x: 960, y: 480, s: 3.2, tilt: ph, t });
-    flares(ctx, t, bt(102) - 0.3, 61, 10, [1060, 560], 1, 2);
+    flares(ctx, t, bt(134) - 0.3, 61, 10, [1060, 560], 1, 2);
     bigWord(ctx, '360° LOOP', age, { y: 980, size: 180, kr: '회피 기동' });
   });
-  S(bt(103), 0.5, (ctx, t, age) => {       // cutscene frame
+  S(bt(135), 0.5, (ctx, t, age) => {       // cutscene frame
     world(ctx, t, 5000 + t * 100, { sky: 'storm', groundY: 1000 });
     drawApache(ctx, { x: 1100, y: 500, s: 2.2, tilt: 0.02, t });
     cutFrame(ctx, t, E.outX(clamp(age / 0.15)), C.cyan, 'TARGETED', '표적 지정됨', 3.6 + age);
@@ -727,7 +987,7 @@ function initMontage() {
   });
   const stamps = [['FLARES', ['#2a0806', '#6a1410'], '플레어'], ['LOCK-ON', ['#041620', '#0c3a52'], '락온'], ['HELLFIRE', ['#241604', '#6a4406'], '헬파이어'], ['LINKED SALVOS', ['#2a0806', '#5a0c0a'], '연계 사격'],
     ['NAV LIGHTS', ['#02040a', '#0c1830'], '항법등'], ['5 PHASES', ['#050505', '#1a1a1a'], '5페이즈'], ['BOSS THEME', ['#041620', '#0c3a52'], '전용 보스 음악'], ['PLAYS WITH CALAMITY', ['#1a0a24', '#3a1450'], '칼라미티 호환 (선택)']];
-  stamps.forEach(([w, pal, k], i) => S(bt(104) + i * 0.25, 0.25, (ctx, t, age) => {
+  stamps.forEach(([w, pal, k], i) => S(bt(136) + i * 0.25, 0.25, (ctx, t, age) => {
     montageBG(ctx, pal);
     ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(-0.22); stripes(ctx, -W, 330, W * 2, 60, 'rgba(255,255,255,0.06)', t * 400, 4); ctx.restore();
     // a prop per stamp
@@ -742,16 +1002,16 @@ function initMontage() {
     bigWord(ctx, w, age, { y: 680, size: w.length > 10 ? 180 : 250, kr: k });
   }));
   // converge: silhouettes rush to the centre, whiteout
-  S(bt(108), T.END - bt(108), (ctx, t, age) => {
+  S(bt(140), T.END - bt(140), (ctx, t, age) => {
     rectF(ctx, 0, 0, W, H, '#050608');
-    const k = E.inC(clamp(age / (T.END - bt(108))));
+    const k = E.inC(clamp(age / (T.END - bt(140))));
     for (let i = 0; i < 60; i++) { const an = hr(i) * TAU, r0 = 1400 - k * 1300 - hr(i * 3) * 300; line(ctx, W / 2 + Math.cos(an) * r0, H / 2 + Math.sin(an) * r0, W / 2 + Math.cos(an) * (r0 + 300), H / 2 + Math.sin(an) * (r0 + 300), '#fff', 2, 0.4); }
     const S2 = (dx, dy) => [W / 2 + dx * (1 - k), H / 2 + dy * (1 - k)];
     let p = S2(-800, -300); drawApache(ctx, { x: p[0], y: p[1], s: 2 - k, t, sil: '#ffffff' });
     p = S2(900, -250); drawDrone(ctx, 'GrayEagle', p[0], p[1], 3 - k * 2, t, { sil: '#ffffff' });
     p = S2(800, 350); drawDrone(ctx, 'ShadowUAV', p[0], p[1], 4 - k * 3, t, { sil: '#ffffff' });
     p = S2(-700, 420); drawHumvee(ctx, p[0], p[1], 2.4 - k * 1.8, { sil: '#ffffff' });
-    FX.flash = E.inX(clamp(age / (T.END - bt(108))));
+    FX.flash = E.inX(clamp(age / (T.END - bt(140))));
   });
 }
 function sMontage(ctx, t) {
@@ -781,14 +1041,14 @@ function sEnd(ctx, t) {
   }
   const tp = ease(a + 0.6, a + 1.4, t, E.lin);
   decode(ctx, 'MODERN MILITARY HARDWARE FOR TERRARIA', W / 2 - 470, 850, tp, { f: 'Chakra', size: 34, w: 600, col: C.white, track: 6 }, 17);
-  kr(ctx, '아파치 가디언 · 그레이 이글 · 섀도 · 험비', W / 2, 900, { align: 'center', size: 26, a: ease(a + 1.2, a + 1.8, t) * 0.85 });
+  kr(ctx, '아파치 D · 아파치 가디언 · 그레이 이글 · 섀도 · 험비', W / 2, 900, { align: 'center', size: 26, a: ease(a + 1.2, a + 1.8, t) * 0.85 });
   const bp = ease(a + 1.6, a + 2.2, t);
   txt(ctx, 'tModLoader MOD   •   v0.5.9   •   CALAMITY OPTIONAL', W / 2, 980, { f: 'Mono', size: 20, w: 700, col: C.dim, align: 'center', track: 3, a: bp });
   txt(ctx, 'MUSIC  “LOW ALTITUDE ASSAULT”  ORIGINAL SCORE', W / 2, 1014, { f: 'Mono', size: 16, w: 400, col: C.dim, align: 'center', track: 3, a: bp * 0.8 });
   ctx.restore();
   cutFrame(ctx, t, ease(a + 0.1, a + 0.5, t, E.outX), C.red, 'MODERN ARSENAL', '모던 아스날', t - a);
   FX.flash = Math.max(FX.flash, 0);
-  const fo = ease(59.0, 59.9, t, E.inQ);
+  const fo = ease(75.0, 75.9, t, E.inQ);
   if (fo > 0) rectF(ctx, 0, 0, W, H, '#000', fo);
 }
 
@@ -801,7 +1061,8 @@ const SCENES = [
   { a: T.SPIKE, b: T.DRONE, draw: sSpike },
   { a: T.DRONE, b: T.HUMVEE, draw: sDrones, out: { type: 'stripes', dur: 0.4, col: C.amber } },
   { a: T.HUMVEE, b: T.BREAK, draw: sHumvee, out: { type: 'slash', dur: 0.3 } },
-  { a: T.BREAK, b: T.MONT, draw: sBreak },
+  { a: T.BREAK, b: T.DPACHE, draw: sBreak },
+  { a: T.DPACHE, b: T.MONT, draw: sDpache },
   { a: T.MONT, b: T.END, draw: sMontage },
   { a: T.END, b: DUR + 1, draw: sEnd },
 ];
@@ -863,12 +1124,12 @@ function initScenes() {
   impact(bt(89), { shake: 10, ca: 3 });
   impact(T.BREAK, { shake: 12, ca: 6 }); impact(bt(94), { shake: 8, ca: 4 });
   impact(T.MONT, { shake: 22, ca: 8, flash: 0.35, zoom: 0.05 });
-  for (let k = 97; k <= 103; k++) impact(bt(k), { shake: 10, ca: 5, zoom: 0.03 });
-  for (let i = 0; i < 8; i++) impact(bt(104) + i * 0.25, { shake: 12, ca: 6, zoom: 0.03, flash: 0.08 });
+  for (let k = 129; k <= 135; k++) impact(bt(k), { shake: 10, ca: 5, zoom: 0.03 });
+  for (let i = 0; i < 8; i++) impact(bt(136) + i * 0.25, { shake: 12, ca: 6, zoom: 0.03, flash: 0.08 });
   impact(T.END, { flash: 1, fdec: 2.2, shake: 30, ca: 12, zoom: 0.06, dec: 3.5 });
   // --- sound cues (mixed under the score by mix.py)
   cue(0.09, 'boot', 0.9);
-  for (let i = 0; i < 6; i++) cue(bt(1 + i), 'chirp', 0.5);
+  for (let i = 0; i < 7; i++) cue(bt(1 + i), 'chirp', 0.5);
   for (const b of [bt(3), bt(6), bt(10)]) cue(b, 'hit', 0.8);
   for (const b of [bt(2), bt(5), bt(9), bt(12)]) cue(b, 'swish', 0.4);
   cue(bt(14), 'riser', 0.5);
@@ -901,13 +1162,15 @@ function initScenes() {
   for (let k = 0; k < 4; k++) cue(bt(92 + k), 'alarm', 0.5);
   cue(bt(95), 'riser', 0.6);
   cue(T.MONT, 'boom', 0.9);
-  for (let k = 97; k <= 103; k++) cue(bt(k), 'hit', 0.6);
-  cue(T.MONT + 0.02, 'gun30', 0.6); cue(bt(97), 'missile', 0.5);
-  for (let i = 0; i < 8; i++) cue(bt(104) + i * 0.25, 'stamp', 0.7);
-  cue(bt(108), 'riser', 0.9);
+  for (let k = 129; k <= 135; k++) cue(bt(k), 'hit', 0.6);
+  cue(T.MONT + 0.02, 'gun30', 0.6); cue(bt(129), 'missile', 0.5);
+  for (let i = 0; i < 8; i++) cue(bt(136) + i * 0.25, 'stamp', 0.7);
+  cue(bt(140), 'riser', 0.9);
   cue(T.END, 'boom', 1.2);
   for (let i = 0; i < 7; i++) cue(T.END + i * 0.0625, 'stamp', 0.3);
   cue(T.END + 0.9, 'shimmer', 0.5);
   cue(T.END + 0.1, 'rotor', 0.5);
+  dCues();
+  CUES.sort((p, q) => p.t - q.t);
   window.CUES = CUES;
 }
