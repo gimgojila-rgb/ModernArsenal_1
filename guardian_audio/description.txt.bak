@@ -1,0 +1,190 @@
+Modern Arsenal - modern military hardware for Terraria.
+Designed to be played alongside the Calamity Mod (optional; detected at runtime).
+
+v0.5.8
+- Apache Guardian: an evasive loop. When it takes a burst of damage (from phase 2) or now and then from phase 3, it pulls
+  up into a full 360-degree loop, dumps flares on the way in and takes 60% less damage until it comes out. 10 s cooldown.
+- Drones resized against the Apache: the RQ-7B Shadow is about 1/5 of it (redrawn 1:1 so the detail stays), the MQ-1C
+  Gray Eagle about half. Health: Gray Eagle 9000, Shadow 3000.
+- Entrance: the drones now do a straight high-speed sweep past the Guardian (Eagle over the rotor, Shadow under the
+  skids), then circle back into the fight.
+- When the Shadow completes a lock, the Gray Eagle fires on the same lase.
+
+v0.5.7
+- New boss (test command for now: /apache guardian): the AH-64E Apache Guardian, with an MQ-1C Gray Eagle and an
+  RQ-7B Shadow. Five phases. It fires Spike NLOS missiles: cold eject, then a steep climb out of sight and a dive onto
+  you. The Shadow orbits over you and lases you; hold the lock for 2-2.5 s and the Guardian answers with 2-3 linked
+  Spikes with tighter guidance. Break line of sight or hurt the Shadow to drop the lock. The Shadow also makes reckless
+  ramming passes. The Gray Eagle works from your far side and drops Hellfires. The drones are bonus support: the Eagle
+  cuts the Guardian's damage taken by 12%, the Shadow makes it 5% faster and brings the linked salvos.
+- In the Guardian's entrance both drones trail it in, streak past it toward you, then bank round into formation.
+- Drone lights done properly for a side view: port red / starboard green by facing, formation lights, white strobes,
+  pulsing red beacons, white tail light (Common/Visuals/NavLightRig.cs).
+- Missile smoke is now left in the world as separate puffs: it thins out from the launcher end first and lingers after
+  the missile is gone, instead of a ribbon that stayed attached and vanished all at once. Launches throw a back-blast
+  cloud out of the rear of the tube.
+
+v0.5.6
+- Apache entrance cutscene: it runs in from far off to one side, high and fast with its nose down, the Longbow radar
+  pinging on the way in, then flares hard into a hover near you. The nose dips, the chin gun slews onto you, the nose
+  sensor lases you with the lock tone, and the title card lands.
+- Boss cutscenes no longer use black bars: the frame is drawn in the warning-banner style, red for the Apache and amber
+  for the Humvee, with bevelled hazard stripes, a label plate and a running clock. It scales with any resolution.
+  Mod config (Modern Arsenal: Visuals) can switch back to plain black bars. The frame, the title card and the warning
+  banners are laid out on a 1080-high canvas scaled to the real screen, so they fill it edge to edge at any resolution
+  and any UI scale setting.
+- Apache: navigation lights (wing-tip position light, tail light, double-flash anti-collision beacon) and thin white
+  vapour trails off the rotor tips and wing tip the whole time it flies, stronger at speed.
+- Weapon effects: Hydra and Hellfire leave a smoke ribbon with a glowing exhaust; 12.7 mm (Humvee M2, red tracers) and
+  30 mm (Apache M230) rounds get muzzle flashes, glowing tracers and impact sparks and dust; 30 mm HEDP bursts on impact.
+- Fixed: rotor and engine loops (Apache, Humvee, Chinook, the airstrike and on-station Apaches) could keep playing after
+  the boss was killed or left. Every loop is now owned by one system that stops it as soon as its owner is gone, and
+  stops everything when you leave the world.
+
+v0.5.5
+- Air assault, reworked: the Chinook makes one long descending run-in and lets the Humvee go on the move. The platform
+  slams down and skids, the tie-downs pop, the Chinook flares while the truck rolls off the front of the deck with its
+  engine off, coasts, brakes to a stop, and cold-starts: the starter cranks with the headlights sagging on every stroke,
+  it catches with a bark of black smoke and a lick of flame, the lights come up, and the title card lands on the catch.
+- The Humvee has working headlights, a side marker and tail lights (brighter on the brakes), drawn as additive glow.
+- An AH-64D passes far off in the background during the run-in.
+
+v0.5.4
+- The Chinook carries the Humvee on an olive-drab load platform, rigged the real way: reach pendant, apex fitting, four
+  sling legs with chain ends on the platform shackles, and four ratchet tie-downs from the deck to the wheel hubs.
+  The load trails and swings under the hook, the legs sag when the platform is on the ground.
+- Airlift: the Chinook sets the empty platform down in front of the truck, the truck drives on, the tie-downs go on one
+  by one, then the lift. After the drop the straps come off, the truck rolls off the deck, and the Chinook leaves with
+  the empty platform swinging under it.
+
+v0.5.3
+- CH-47D Chinook (new pixel art, lit and weathered like the Apache): the Humvee now arrives by air assault. The Chinook
+  swoops in with the truck on its sling, sets it down near you and leaves, with a short cutscene: letterbox, the camera
+  rides along, title card. You can't be hurt or move while it plays.
+- No more driving up into the air: when you hold a ledge the truck can't reach, or a wall blocks it, the crew calls the
+  Chinook. It dives in, flares, hooks the truck, carries it over and drops it on your level (an amber HOSTILE AIRLIFT
+  marker shows where). The gunner keeps firing while it hangs there. The load swings on the sling.
+- Chinook lights: blinking position light (green or red by side), red double-flash beacons, tail light and a searchlight
+  beam, drawn as additive glow. Two rotor loops, one per rotor head, beating against each other, plus the turbine whine.
+
+v0.5.2
+- Humvee has a full pattern set now instead of leaning on rams:
+  M2 suppressive sweep: a fan of fire walked down across your area. Close in under the stream or get behind cover.
+  Mk19 walked barrage: rounds land one after another along the ground, marching through you.
+  Phase 2, doors off: it rolls in and the crew throws M67 frags out of the doorways. They bounce, land on
+  platforms and cook off.
+  Phase 2 fire mission: 60 mm mortars whistle down around you after a bracketing pair. A roof overhead stops them,
+  and camping up high draws more of them.
+- TOW is a TOW now: its own BGM-71 sprite, kicked out of the tube before the flight motor lights through the side
+  nozzles, a flickering tail beacon, and guidance wires running back to the launcher. Kill the truck and the wires
+  are cut.
+- New Humvee alert: a two-note alert over the radio (squelch, tones, squelch) replaces the klaxon.
+
+v0.5.1
+- Humvee: pulling away, climbing and every ram now floor it: a hard rev, black smoke out of the exhaust, and the
+  engine note climbs with the throttle instead of just the speed. Louder engine overall.
+- Humvee warnings are its own: amber CONTACT banner with hazard tape and a two-tone klaxon, amber telegraphs, and a
+  lower tracking tone for the TOW. The Apache keeps the red WARNING banner and RWR tone.
+- Humvee has weight: the body squats when it pulls away, dives when it brakes and bounces on landings; screen shake
+  on rams going past, hard landings, grenade bursts and the final blast.
+
+v0.5.0
+- New boss: M1151 Humvee, the first boss (before the Eye of Cthulhu). Summoned with a Road Flare, crafted from
+  4 iron or lead bars, 10 Gel and 5 Torches at a work bench.
+- A ground vehicle that never jumps. It drives on platforms, climbs up to your level nose-high, crawls over low
+  walls, and when it can't reach you it pulls out of sight and comes in from the side.
+- M2 .50 cal bursts, lobbed Mk19 grenades that burst on platforms too, and ground rams with a lane warning.
+  Camping up high swaps the rams for more grenades.
+- Destructible parts: turret (short, wild bursts and fewer grenades), both tires (it slides, brakes late and
+  throws sparks off the rims) and, from phase 2, the engine (the hood blows off, it burns and loses speed).
+- Phase 2 at half health: burnout, the doors get kicked off, and a TOW launcher goes up on the roof.
+- Death: it burns out, then the fuel goes up and the truck comes apart.
+- Boss theme: Armored Perimeter.
+- Test command: /humvee [flare n | hp 1-100 | kill].
+- Explosions spawned with 0 damage are effects only.
+
+v0.4.4
+- Apache flares are real decoys now. Each flare counts as an enemy, so homing weapons, minions and stray shots go
+  for it instead of the gunship. They pop in one hit, drop nothing, heal nothing and burn out in a few seconds.
+- From phase 3 the Apache throws a wide flare curtain toward you as it settles into a standoff.
+- Explosions and destroyed parts puff vanilla smoke, so the blasts sit in the world like vanilla explosives.
+- Boss parts run on a shared part system (groundwork for the next bosses). No change to how the Apache parts play.
+- Humvee engine and M2 .50 cal sounds added for the upcoming Humvee boss.
+
+v0.4.3
+- Encrypted Field Radio is a straight summon again, framed as the enemy finding you: POSITION COMPROMISED banner,
+  then the hostile Apache comes in.
+- Laser Target Designator, right click: close air support terminal. Hold TRANSMIT to call a friendly AH-64D that
+  hovers over you and works the nearest enemy with the M230, Hydra pairs and a homing Hellfire every 5 seconds.
+  Costs 40 mana to call and 12 mana a second on station; it flies home when your mana runs out, or hold again to
+  release it. The terminal can be dragged by its header bar.
+
+v0.4.2
+- Fire support terminal UI (moved to the Laser Target Designator in v0.4.3).
+- M4A1 sounds: recorded AR-15 shots (three AUTO variants, a heavier SEMI shot), a selector click and brass casing clinks.
+- M4A1 rebalanced: 11 damage. AUTO: 2.5 degree spread, 25% chance to save ammo. SEMI: 1.8x damage, +10% crit,
+  10 armor penetration, 30% faster rounds, 12 ticks per shot.
+- Test commands: /m4a1 or /apache m4 gives the M4A1 and an Endless Musket Pouch.
+
+v0.4.1
+- New weapon: M4A1 Carbine (pre-hardmode, after Skeletron). Crafted from a Minishark, Illegal Gun Parts, 12 iron or
+  lead bars and 15 Bone at an anvil. Right click flips the selector between SEMI and AUTO.
+- M4A1 shot animation: the bolt cycles in the ejection port, the gun kicks back and climbs, a muzzle flash shows at
+  the flash hider, and brass casings fly out of the port, bounce off the ground and settle before fading.
+
+v0.4.0
+- Apache remake: every phase now opens with a sortie. The gunship climbs straight out of sight, strikes from above with
+  radar-locked Hellfires (4 / 6 / 8 / 8, plus a Hydra salvo from phase 2) and dives back in along a shown lane; from
+  phase 3 the dive goes straight through the player (phase 4: two passes). It can't be hit while it is up there.
+- Hellfire guidance up about 20% (turn 0.044, top speed 15.5, seeker time 170 ticks); radar lock shots turn tighter too.
+- build.txt restored (display name and version).
+
+v0.3.2
+- Long charge reworked Devourer-of-Gods style: goes 2600px out of sight, comes back from either side or diving from
+  above, with blinking arrows on the screen edge while it is gone; more frequent from phase 2.
+- Pilot radio and cockpit system messages rewritten as short English radio calls and caution codes (all languages).
+- Fixed lofted Hellfires (volley and standoff) never guiding: the overshoot check tripped during the climb.
+
+v0.3.1
+- Apache: standoff strike (leaves the screen, then Hydras / Hellfires / long-range 30mm from out of sight, with warnings).
+- Hellfire guidance +15%. Reworked engine fire (grows out of the engine, 2x2 pixel grid), half-size mini Apache sprites.
+
+v0.3.0
+- New drops: Mini Apache Remote (summon) and Laser Target Designator (off-screen Apache air support, with a rare gun run).
+- Apache: long off-screen charges that dump flares, rockets peel off the short charge, Hydra salvos of up to 38 rockets,
+  Hellfire volleys of up to 8, weighted shuffle-bag attack order.
+- Wrecked systems now degrade instead of vanishing: jammed gun, misfiring pod, hand-flown radar lock.
+- Part health scales with the airframe; parts are armored until later phases and ignored by homing weapons.
+- Engine fire drawn from phase 3, gentler Hellfire guidance, custom arrival message, pilot/system chat colors.
+- Fixed the rotor sound lingering after the fight and the boss theme losing to other mods' music.
+
+v0.2.0
+- Apache rework: four phases, randomized attack selection, new attacks (ram charge, Hydra rain,
+  pop-up top-attack Hellfire, Longbow radar lock, strafing run) with on-screen warnings and path markers.
+- Destructible systems: M230 gun, rocket pod, Longbow radar and tail rotor each have their own health.
+- Progressive damage: smoke, sparks, engine fire, cracked canopy, and a crash sequence on death.
+- Fixed flares firing endlessly below 25% health.
+- Boss theme added.
+
+v0.1.0
+- Boss: AH-64D Apache (post-Golem). Summoned with the Encrypted Field Radio.
+
+Sound sources (CC0 / public domain, edited):
+- Helicopter Loop by qubodup - https://freesound.org/people/qubodup/sounds/187678/
+- Machine Gun Burst by qubodup - https://freesound.org/people/qubodup/sounds/482121/
+- Rocket Launch.flac by qubodup - https://freesound.org/people/qubodup/sounds/182794/
+- Far Away Rocket Launch by qubodup - https://freesound.org/people/qubodup/sounds/211617/
+- Explosion by qubodup - https://freesound.org/people/qubodup/sounds/442958/
+- AR15 rifle shot by michorvath - https://freesound.org/people/michorvath/sounds/427596/
+- Ar15-Real Recording.wav by SuperPhat - https://freesound.org/people/SuperPhat/sounds/432366/
+- AR15 M4 Gun Hardware Magazine Movement Sounds by jackmurrayofficial - https://freesound.org/people/jackmurrayofficial/sounds/393732/
+- Brass bullet shell casing drop onto concrete by GrayJoy - https://freesound.org/people/GrayJoy/sounds/210102/
+- engine idle van diesel exhaust CBC microwave truck side4 nearby.flac by kyles - https://freesound.org/people/kyles/sounds/453995/
+- truck big diesel engine work up a hill sustained rev and pass by2.flac by kyles - https://freesound.org/people/kyles/sounds/637914/
+- "50 Caliber MG.flac" by qubodup - https://freesound.org/people/qubodup/sounds/183656/
+- 50 CAL Machine Gun.wav by klangfabrik - https://freesound.org/people/klangfabrik/sounds/249146/
+
+Music: Apache Theme (sample) supplied by the mod author.
+Music: Humvee Theme "Armored Perimeter" supplied by the mod author.
+Warning tones, the ground-threat radio alert, the mortar whistle, radio call, radio squelch and alarm sounds are synthesized for this mod.
+The Humvee rev and the Humvee cold start (starter motor synthesized, the catch built from the engine recordings) use the kyles engine recordings above.

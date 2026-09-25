@@ -1,0 +1,135 @@
+{
+ "canvas_px": [
+  224,
+  120
+ ],
+ "faces": "left",
+ "scale": "1 cell = 2x2 px (nearest)",
+ "draw_order": [
+  "Frame",
+  "Engine",
+  "Cabin",
+  "Interior",
+  "WellRear",
+  "WellFront",
+  "Spare",
+  "Wheel(rear)",
+  "Wheel(front)",
+  "Body",
+  "DoorRear",
+  "DoorFront",
+  "Hood",
+  "Antenna",
+  "TurretShield",
+  "Gun",
+  "Turret"
+ ],
+ "wheel_centers_px": {
+  "rear": [
+   177.0,
+   95.0
+  ],
+  "front": [
+   41.0,
+   95.0
+  ]
+ },
+ "wheel_sheet": {
+  "frame_px": [
+   42,
+   42
+  ],
+  "gap_px": 2,
+  "frames": 4,
+  "deg_per_frame": 11.25,
+  "pivot_in_frame_px": [
+   21,
+   21
+  ]
+ },
+ "gun": {
+  "size_px": [
+   72,
+   14
+  ],
+  "pivot_in_tex_px": [
+   49.0,
+   13.0
+  ],
+  "pivot_in_canvas_px": [
+   93.8,
+   22.4
+  ],
+  "muzzle_len_px": 49.0,
+  "note": "draw after TurretShield and before Turret: the side plate hides the receiver, the barrel passes in front of the shield"
+ },
+ "ground_contact_y_px": 116.0,
+ "gores": {
+  "DoorRear": {
+   "bbox_px_in_canvas": [
+    114,
+    36,
+    150,
+    88
+   ],
+   "size": [
+    36,
+    52
+   ]
+  },
+  "DoorFront": {
+   "bbox_px_in_canvas": [
+    76,
+    36,
+    114,
+    88
+   ],
+   "size": [
+    38,
+    52
+   ]
+  },
+  "Hood": {
+   "bbox_px_in_canvas": [
+    12,
+    50,
+    74,
+    86
+   ],
+   "size": [
+    62,
+    36
+   ]
+  },
+  "Turret": {
+   "bbox_px_in_canvas": [
+    82,
+    12,
+    158,
+    36
+   ],
+   "size": [
+    76,
+    24
+   ]
+  },
+  "Spare": {
+   "bbox_px_in_canvas": [
+    200,
+    44,
+    222,
+    86
+   ],
+   "size": [
+    22,
+    42
+   ]
+  },
+  "Wheel": {
+   "size": [
+    42,
+    42
+   ]
+  }
+ }
+}
