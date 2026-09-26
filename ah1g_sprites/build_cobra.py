@@ -10,7 +10,7 @@ Layers (all body-canvas layers share one 308x84 canvas and one origin, draw them
   CobraBoss_Canopy.png     glass and frames (separate so it can crack, fog or open)
   CobraBoss_Shark.png      shark mouth (flip with the body)
   CobraBoss_MarksL/R.png   stencils, drawn unflipped: L when facing left, R when facing right
-  CobraBoss_Turret.png     ball chin turret; draw after the gun so the ball hides the barrel root
+  CobraBoss_Turret.png     square drum chin turret in the notch; draw after the gun so it hides the barrel root
   CobraBoss_PodIn.png      inboard M158A1 7-tube pod (hidden behind the outboard pod until that one is gone)
   CobraBoss_PodOut.png     outboard M200A1 19-tube pod
 Own canvases:
@@ -52,7 +52,16 @@ def interp_y(pts, x):
 
 
 # ----------------------------------------------------------------------------------------------------------- body
+BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16.0
+DITHER = BAYER[np.arange(H)[:, None] % 4, np.arange(W)[None, :] % 4]      # ordered dither threshold per cell
+LONGERON_Y = 17.4                    # upper longeron: the side rolls in toward the deck above it
+HUMP_BASE_Y = 27.4
+
+
 def body():
+    """fuselage skin. Light comes from above and a little ahead, as on the Apache sprites. The Cobra is a narrow
+    slab: flat sides, the upper side rolling in above the longeron (a bright band along it), a rounded belly with a
+    line of reflected light just inside the outline"""
     L = cv.layer('Body')
     fus = L.poly(FUSELAGE, 'od', 4)
     cx0, cx1, cy0, cy1 = CAVITY
@@ -60,117 +69,151 @@ def body():
     fus = fus | cav
     glass = cv.cov_poly(GLASS) >= 0.5
     dtop = runs_from(fus, 'top'); dbot = runs_from(fus, 'bot')
-
-    # --- broad form: the sides are flat, the top and bottom roll away
-    L.recolor(fus & (dtop == 2), tone=6)
-    L.recolor(fus & (dtop == 3), tone=5)
-    L.recolor(fus & (dbot == 2), tone=2)
-    L.recolor(fus & (dbot == 3), tone=3)
-
-    # nose below the sill: round, so it darkens toward the chin and the tip
     sill_y = interp_y(SILL, X)
-    nose = fus & (X < 38) & (Y < sill_y)
-    L.recolor(nose & (Y < sill_y - 1) & (Y >= sill_y - 3), tone=5)
-    L.recolor(nose & (Y < sill_y - 3), tone=4)
-    chin_mid = interp_y(CHIN + BELLY[::-1], X)
-    L.recolor(nose & (Y < chin_mid + 2.2) & (dbot > 1), tone=3)
-    L.recolor(nose & (X < 2.2) & (dbot > 1) & (dtop > 1), tone=3)
-    L.recolor(nose & (X >= 0.5) & (X < 2.5) & (Y > 13.2) & (dtop > 1), tone=5)
-    L.P(0.6, 13.6, 'od', 7)
-    L.P(1.5, 14.4, 'od', 6)
-    # sill: a lit ledge under the canopy rail
-    for x in np.arange(8.9, 37.0, 1.0):
-        L.P(x, interp_y(SILL, x) - 0.2, 'od', 6)
+    bt = interp_y(BOOM_TOP, X)
 
-    # centre section: hump sides lit (the cowls lean in toward the top), fuselage side plain
-    hump = fus & (X >= 37.6) & (X < 72.5) & (Y > 27.4)
-    L.recolor(hump & (dtop > 3), tone=5)
-    L.recolor(hump & (dtop > 3) & (Y < 30.2), tone=4)
-    # hump front slope faces forward and up
-    fr = fus & (X >= 37.6) & (X < 41.2) & (Y > 27.6)
-    L.recolor(fr & (dtop <= 2), tone=7)
-    L.recolor(fr & (dtop == 3), tone=6)
-    # hump top edge
-    L.recolor(fus & (X >= 41) & (X < 62) & (dtop == 2), tone=7)
-    # rear slope of the transmission fairing, turning away from the light
-    rs = fus & (X >= 61.5) & (X < 72.5) & (Y > 25.0)
+    # --- nose, below the canopy: a blunt cone, lit on its upper cheek, dark under the chin
+    nose = fus & (X < 22.4) & ~glass
+    L.recolor(nose & (Y > sill_y - 2.2), tone=6)
+    L.recolor(nose & (Y <= sill_y - 2.2) & (Y > sill_y - 4.2), tone=5)
+    L.recolor(nose & (Y <= sill_y - 4.2), tone=4)
+    L.recolor(nose & (dbot <= 3), tone=3)
+    L.recolor(nose & (X < 1.2) & (dbot > 1) & (dtop > 1) & (Y < 13.2), tone=3)
+    L.P(1.5, 14.4, 'od', 7); L.P(2.5, 14.9, 'od', 7); L.P(0.6, 13.6, 'od', 6)
+
+    # --- centre section side (behind the notch, under the hump)
+    side = fus & (X >= 22.4) & (X < 72.5) & (Y <= HUMP_BASE_Y) & ~glass
+    L.recolor(side & (Y > LONGERON_Y), tone=5)
+    L.recolor(side & (Y > LONGERON_Y) & (Y < LONGERON_Y + 2.0), tone=6)
+    L.recolor(side & (Y < 11.2), tone=3)
+    L.recolor(side & (dbot <= 3), tone=2)
+    # sill: a lit ledge under the canopy rail, a dark shadow line under it
+    for x in np.arange(8.9, 37.5, 1.0):
+        L.P(x, interp_y(SILL, x) - 0.2, 'od', 7 if 12 < x < 30 else 6)
+        L.P(x, interp_y(SILL, x) - 1.2, 'od', 4)
+
+    # --- hump (transmission fairing, engine cowl, aft fairing): a rounded roof over flat sides
+    hump = fus & (X >= 37.6) & (X < 72.5) & (Y > HUMP_BASE_Y)
+    L.recolor(hump, tone=5)
+    L.recolor(hump & (dtop == 3), tone=6)
+    L.recolor(hump & (dtop == 2), tone=7)
+    L.recolor(hump & (Y < HUMP_BASE_Y + 2.0) & (dtop > 3), tone=4)
+    fr = fus & (X >= 37.6) & (X < 41.2) & (Y > HUMP_BASE_Y + 0.2)             # front slope faces forward and up
+    L.recolor(fr & (dtop <= 3) & (dtop > 1), tone=7)
+    L.recolor(fr & (dtop == 2) & (X > 38.6), tone=8)
+    L.recolor(fr & (dtop == 4), tone=6)
+    rs = fus & (X >= 62.4) & (X < 72.5) & (Y > 25.0)                          # rear slope turns away
+    L.recolor(rs & (dtop > 1), tone=4)
     L.recolor(rs & (dtop == 2), tone=5)
+    L.recolor(rs & (dtop > 4) & (Y < 26.5), tone=3)
 
-    # engine nacelle: a horizontal cylinder bulging out of the cowl side
+    # --- engine nacelle: a horizontal cylinder bulging out of the cowl side
     nt = interp_y(NACELLE_TOP, X); nb = interp_y(NACELLE_BOT, X)
     nac = fus & (X > INTAKE[2] - 0.2) & (X < 72.3) & (Y < nt) & (Y > nb)
     L.recolor(nac, tone=4)
-    L.recolor(nac & (Y > nt - 1.0), tone=6)
-    L.recolor(nac & (Y <= nt - 1.0) & (Y > nt - 2.4), tone=5)
+    L.recolor(nac & (Y > nt - 1.0), tone=7)
+    L.recolor(nac & (Y > nt - 1.0) & (X > 54.0) & (X < 61.0), tone=8)
+    L.recolor(nac & (Y <= nt - 1.0) & (Y > nt - 2.4), tone=6)
+    L.recolor(nac & (Y <= nt - 2.4) & (Y > nt - 3.6), tone=5)
     L.recolor(nac & (Y < nb + 2.2), tone=3)
     L.recolor(nac & (Y < nb + 1.0), tone=2)
-    L.recolor(fus & (X > INTAKE[0]) & (X < 72.2) & (Y < nb) & (Y > nb - 1.0), tone=2)     # its shadow on the side
-    L.recolor(fus & (X > INTAKE[2]) & (X < 64.6) & (Y > nt) & (Y < nt + 1.0), tone=3)      # crease above it
+    L.recolor(fus & (X > INTAKE[0]) & (X < 72.2) & (Y < nb) & (Y > nb - 1.0), tone=1)     # its shadow on the side
+    L.recolor(fus & (X > INTAKE[0]) & (X < 72.2) & (Y < nb - 1.0) & (Y > nb - 2.0), tone=3)
+    L.recolor(fus & (X > INTAKE[2]) & (X < 64.6) & (Y > nt) & (Y < nt + 1.0), tone=2)      # crease above it
 
-    # engine air intake: dark grille
+    # --- engine air intake: rounded dark mouth with a lit lip and a screen
     x0, y0, x1, y1 = INTAKE
-    it = L.fill((X > x0) & (X < x1) & (Y > y0) & (Y < y1) & fus, 'dark', 2)
+    it = L.fill((X > x0) & (X < x1) & (Y > y0) & (Y < y1) & fus, 'dark', 1)
     for yy in np.arange(y0 + 1.0, y1 - 0.5, 2.0):
-        L.recolor(it & (Y > yy) & (Y < yy + 1.0), tone=4)
-    L.recolor(it & (X < x0 + 1.0), tone=1)
-    L.recolor(fus & (X > x0 - 1) & (X < x0) & (Y > y0) & (Y < y1), tone=6)                # lit lip in front
+        L.recolor(it & (Y > yy) & (Y < yy + 1.0) & (X > x0 + 1.0), tone=3)
+    L.recolor(it & (X < x0 + 1.0), tone=0)
+    L.recolor(it & (Y > y1 - 1.0), tone=0)
+    for (x, y) in ((x0 + 0.5, y1 - 0.5), (x1 - 0.5, y1 - 0.5), (x0 + 0.5, y0 + 0.5), (x1 - 0.5, y0 + 0.5)):
+        L.P(x, y, 'od', 3)                                                    # rounded corners
+    L.recolor(fus & (X > x0 - 1) & (X < x0) & (Y > y0) & (Y < y1), tone=7)    # lit lip in front
+    L.recolor(fus & (X > x0 - 2) & (X < x0 - 1) & (Y > y0) & (Y < y1), tone=5)
+    L.recolor(fus & (X > x0) & (X < x1) & (Y > y0 - 1) & (Y < y0), tone=6)    # lit sill under it
 
-    # exhaust nozzle: burnt steel, rim catching light at the back
+    # --- exhaust nozzle: steel, heat tinted, the rim catching the light
     noz = fus & (X > 72.3) & (X < 75.4) & (Y > 19.2) & (Y < 26.2)
     L.recolor(noz, mat='steel', tone=3)
-    L.recolor(noz & (Y > 24.0), tone=5)
+    L.recolor(noz & (Y > 24.0), tone=6)
     L.recolor(noz & (Y > 22.4) & (Y <= 24.0), tone=4)
     L.recolor(noz & (Y < 21.2), tone=1)
-    L.recolor(noz & (X < 73.2) & (Y > 21.2), mat='burnt', tone=4)            # heat tint behind the rim
-    L.recolor(noz & (X > 74.0), mat='steel', tone=5)               # rim
+    L.recolor(noz & (X < 73.2) & (Y > 21.2), mat='burnt', tone=4)
+    L.recolor(noz & (X < 73.2) & (Y > 23.6), mat='burnt', tone=5)
+    L.recolor(noz & (X > 74.0), mat='steel', tone=5)
     L.recolor(noz & (X > 74.0) & (Y > 24.0), tone=7)
     L.recolor(noz & (X > 74.0) & (Y < 21.8), tone=2)
-    L.recolor(fus & (X > 71.4) & (X < 72.4) & (Y > 19.6) & (Y < 25.6), mat='od', tone=1)   # joint to the nacelle
+    L.recolor(fus & (X > 71.4) & (X < 72.4) & (Y > 19.6) & (Y < 25.6), mat='od', tone=1)
 
-    # tail boom: driveshaft fairing along the top, seam under it, then the tapering side
-    boom = fus & (X >= 72) & (X < 121.5)
-    bt = interp_y(BOOM_TOP, X)
-    L.recolor(boom & (Y < bt) & (Y > bt - 1.7) & (dtop > 1), tone=5)
+    # --- tail boom: driveshaft cover on top, its shadow, a bright band where the boom's upper side rolls, then down
+    # to a dark keel with reflected light at the very bottom
+    boom = fus & (X >= 72.3) & (X < 121.5) & ~noz
+    L.recolor(boom, tone=4)
+    L.recolor(boom & (Y < bt) & (Y > bt - 1.7), tone=5)
     L.recolor(boom & (dtop == 2), tone=6)
-    L.recolor(boom & (Y <= bt - 1.7) & (Y > bt - 2.7), tone=3)
-    L.recolor(boom & (Y <= bt - 2.7) & (Y > bt - 3.7), tone=5)
-    # soot from the exhaust over the fairing
-    for x in range(76, 96):
-        k = (x - 76) / 20.0
-        for yy in (bt[0, 0] * 0 + interp_y(BOOM_TOP, x) - 1.3, interp_y(BOOM_TOP, x) - 2.3):
-            if ((x * 7 + int(yy * 3)) % 5) / 5.0 > k * 1.2:
-                c, r = cv.cell(x, yy)
-                if fus[r, c] and L.tone[r, c] > 2:
-                    L.tone[r, c] -= 2
+    L.recolor(boom & (Y <= bt - 1.7) & (Y > bt - 2.7), tone=2)
+    L.recolor(boom & (Y <= bt - 2.7) & (Y > bt - 3.7), tone=7)
+    L.recolor(boom & (Y <= bt - 3.7) & (Y > bt - 5.7), tone=5)
+    L.recolor(boom & (dbot <= 4), tone=3)
+    L.recolor(boom & (dbot <= 2), tone=2)
+    # cover segments: short dark joints with a lit lip, every 5 cells
+    for x in np.arange(79.5, 119, 5.0):
+        c, r = cv.cell(x, interp_y(BOOM_TOP, x) - 0.6)
+        if fus[r, c]:
+            L.tone[r, c] = 3; L.tone[r, c + 1] = 7
 
-    # fin: flat plate, leading edge rounded (lit), trailing edge thin (darker)
+    # --- fin: a thick aerofoil, rounded lit leading edge carrying the driveshaft cover up to the 90 degree gearbox
     fin = fus & (X >= 120.8) & (Y > interp_y(BOOM_TOP, X) - 0.2)
-    le_x = interp_y([(p[1], p[0]) for p in FIN_LE], Y)          # x of the leading edge at this height
-    L.recolor(fin & (X < le_x + 2.2) & (dtop > 1), tone=5)
-    L.recolor(fin & (X < le_x + 1.1) & (dtop > 1), tone=6)
+    le_x = interp_y([(p[1], p[0]) for p in FIN_LE], Y)
     te_x = interp_y([(p[1], p[0]) for p in FIN_TE], Y)
+    L.recolor(fin, tone=5)
+    L.recolor(fin & (X < le_x + 4.6), tone=6)
+    L.recolor(fin & (X < le_x + 1.6) & (dtop > 1), tone=7)
+    L.recolor(fin & (X > te_x - 4.0) & (Y > 16), tone=4)
     L.recolor(fin & (X > te_x - 1.6) & (Y > 16), tone=3)
+    L.recolor(fin & (Y < 19.6) & (X > le_x + 1.6), tone=4)                                # root, in the boom's shade
+    L.recolor(fin & (Y > 32.4) & (dtop > 1), tone=6)                                      # tip cap
+
+    # 42 degree gearbox fairing at the fin root
+    L.recolor(fus & (cv.cov_ell(121.6, 18.6, 2.4, 1.6) >= 0.5), tone=5)
+    L.recolor(fus & (cv.cov_ell(121.2, 19.2, 1.4, 0.8) >= 0.5), tone=7)
+    L.recolor(fus & (cv.cov_ell(121.6, 18.6, 2.4, 1.6) >= 0.5) & (Y < 17.8), tone=3)
 
     # tail rotor gearbox fairing on the fin
     gb = cv.cov_ell(TAIL_HUB[0] + 0.4, TAIL_HUB[1] - 0.3, 3.1, 2.8) >= 0.5
     L.fill(gb & fus, 'od', 4)
     L.recolor(gb & (cv.cov_ell(TAIL_HUB[0] - 0.4, TAIL_HUB[1] + 0.4, 2.0, 1.8) >= 0.5), tone=6)
-    L.recolor(gb & (Y < TAIL_HUB[1] - 1.4), tone=3)
+    L.P(TAIL_HUB[0] - 1.0, TAIL_HUB[1] + 1.2, 'od', 7)
+    L.recolor(gb & (Y < TAIL_HUB[1] - 1.4), tone=2)
+    ge = gb & ~(shift(gb, 1, 0) & shift(gb, -1, 0) & shift(gb, 0, 1) & shift(gb, 0, -1))
+    L.recolor(ge & fus & ~Layer.edge_of(fus), tone=2)
 
-    # the turret notch: the inside of the recess behind the turret is in shadow; its rear wall catches light
+    # the turret notch: shadowed recess, its rear wall catching light
     L.fill(cav, 'dark', 1)
     L.recolor(cav & (Y > cy1 - 1.0), tone=0)
+    L.recolor(cav & (X > cx1 - 1.0), tone=2)
     L.fill(fus & (X > cx1) & (X < cx1 + 1.0) & (Y > cy0 + 0.6) & (Y < cy1), 'od', 6)
 
     # cockpit interior under the glass (shows if the canopy layer is left off)
     L.fill(glass & fus & (dtop > 1), 'dark', 2)
 
-    # --- outline last (outer edge of the whole fuselage)
-    e = Layer.edge_of(fus)
-    L.fill(e, 'od', 0)
+    L._fus = fus
     return L, fus
 
 
+def finish_skin(L, fus):
+    """weathering and the outline, after all the panel work"""
+    bt = interp_y(BOOM_TOP, X)
+    od = L.is_mat('od')
+    inner = fus & ~Layer.edge_of(fus) & od
+    # exhaust soot: a stepped darker patch over the boom top that ends in a ragged edge, no dither
+    soot = inner & (X > 75.2) & (Y > bt - 3.7 - np.clip((84 - X) / 3.0, 0, 3)) & (X < 84 + 3 * ((Y * 2).astype(int) % 2))
+    L.tone[soot] = np.maximum(1, L.tone[soot] - 1)
+    # --- outline last (outer edge of the whole fuselage): near-black, a shade lighter along the lit top
+    e = Layer.edge_of(fus)
+    L.fill(e, 'od', 0)
 
 
 # ------------------------------------------------------------------------------------------ things in front of the skin
@@ -204,35 +247,111 @@ def rivets(L, fus, pts, every=3, dt=1):
                 L.tone[r, c] = min(7, L.tone[r, c] + dt)
 
 
+def groove(L, fus, pts, skip=None, rivet=0, roff=-1, bevel=False, dt=-2):
+    """a panel line cut into the skin: a dark groove with its far wall lit (the cell below a horizontal line, to the
+    right of a vertical one), optional rivet row beside it (every `rivet` cells, `roff` cells to the other side)"""
+    inner = fus & ~Layer.edge_of(fus) & L.is_mat('od')
+    if skip is not None:
+        inner &= ~skip
+    def ok(c, r):
+        return 0 <= c < W and 0 <= r < H and inner[r, c]
+    line = []
+    for a, b in zip(pts[:-1], pts[1:]):
+        horiz = abs(b[0] - a[0]) >= abs(b[1] - a[1])
+        for c, r in L.cells(a[0], a[1], b[0], b[1]):
+            if (c, r) not in [p[:2] for p in line]:
+                line.append((c, r, horiz))
+    cellset = {(c, r) for c, r, _ in line}
+    for c, r, _ in line:
+        if ok(c, r):
+            L.tone[r, c] = max(1, min(L.tone[r, c], 4) + dt)
+    if bevel:
+        for c, r, horiz in line:
+            cc, rr = (c, r + 1) if horiz else (c + 1, r)
+            if ok(cc, rr) and (cc, rr) not in cellset:
+                L.tone[rr, cc] = min(8, L.tone[rr, cc] + 1)
+    if rivet:
+        for i, (c, r, horiz) in enumerate(line):
+            if i % rivet:
+                continue
+            cc, rr = (c, r + roff) if horiz else (c + roff, r)
+            if ok(cc, rr) and (cc, rr) not in cellset:
+                L.tone[rr, cc] = min(8, L.tone[rr, cc] + 1)
+
+
+def dots(L, fus, x0, x1, y, every=3, skip=None, dt=2):
+    """a rivet row: light dots every `every` cells along a height (a number or a function of x)"""
+    inner = fus & ~Layer.edge_of(fus) & L.is_mat('od')
+    if skip is not None:
+        inner &= ~skip
+    for x in np.arange(x0, x1 + 0.01, every):
+        yy = y(x) if callable(y) else y
+        c, r = cv.cell(x, yy)
+        if 0 <= c < W and 0 <= r < H and inner[r, c]:
+            L.tone[r, c] = min(8, L.tone[r, c] + dt)
+
+
+def rect(x0, y0, x1, y1):
+    return [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
+
+
+def latch(L, x, y):
+    """a flush latch: dark slot with a lit lip under it"""
+    L.P(x, y, 'od', 1); L.P(x + 1, y, 'od', 2); L.P(x, y - 1, 'od', 6)
+
+
 def details(L, fus):
     glass = cv.cov_poly(GLASS) >= 0.5
-    # panel lines from the production profile
-    seam(L, fus, [(9.6, 8.9), (9.6, 14.6)])                                   # nose cone joint
-    seam(L, fus, [(22.7, 5.5), (22.7, 17.0)], skip=glass)
-    seam(L, fus, [(42.6, 5.4), (42.6, 27.0)])
-    seam(L, fus, [(53.4, 5.2), (53.4, 20.6)])
-    seam(L, fus, [(53.4, 28.6), (53.4, 33.6)], dt=-1)
-    seam(L, fus, [(61.6, 5.2), (61.6, 20.4)])
-    seam(L, fus, [(68.6, 5.4), (68.6, 17.6)], dt=-2, lo=1)                    # tail boom joint
-    for x in (85.2, 112.4):
-        seam(L, fus, [(x, 6.0), (x, interp_y(BOOM_TOP, x) - 1.8)])
-    seam(L, fus, [(23.0, 17.35), (42.6, 17.35)], dt=-1, skip=glass)          # side panel line
-    seam(L, fus, [(42.6, 17.4), (48.4, 17.4)], dt=-1)
-    seam(L, fus, [(53.4, 17.4), (68.6, 17.4)], dt=-1)
-    rivets(L, fus, [(42.6, 6.2), (42.6, 16.6)], every=3)
-    rivets(L, fus, [(68.6, 6.0), (68.6, 16.8)], every=3)
-    # transmission cowl door on the hump
-    seam(L, fus, [(40.9, 30.4), (46.4, 30.4), (46.4, 33.4)], dt=-1)
-    L.P(45.8, 31.4, 'od', 2)
-    # oil level window
-    L.fill((X > 56.2) & (X < 57.9) & (Y > 24.2) & (Y < 26.6) & fus, 'dark', 2)
-    L.P(56.6, 25.8, 'glass', 5)
-    # ammunition bay door and its latch, fuel cap
-    door = [(57.6, 11.4), (60.2, 11.4), (60.2, 16.6), (57.6, 16.6), (57.6, 11.4)]
-    seam(L, fus, door, dt=-2)
-    seam(L, fus, [(58.6, 15.6), (58.6, 12.4)], dt=1)                          # lit inner edge
-    L.P(59.4, 14.0, 'dark', 2)
-    L.P(62.7, 12.6, 'od', 2); L.P(62.7, 13.6, 'od', 6)
+    ix0, iy0, ix1, iy1 = INTAKE
+    keep = glass | ((X > ix0 - 2.1) & (X < ix1 + 0.1) & (Y > iy0 - 1.1) & (Y < iy1 + 0.1))
+    # --- stations (vertical joints): plain dark lines, as on the Apache
+    groove(L, fus, [(9.6, 9.8), (9.6, 14.2)])                                  # nose cone joint
+    groove(L, fus, [(22.7, 5.5), (22.7, 16.9)], skip=keep)
+    groove(L, fus, [(34.6, 5.2), (34.6, 19.4)], skip=keep)                    # cockpit aft bulkhead
+    groove(L, fus, [(42.6, 5.4), (42.6, 27.0)], skip=keep)
+    groove(L, fus, [(53.4, 5.2), (53.4, 20.2)], skip=keep)
+    groove(L, fus, [(61.6, 5.2), (61.6, 20.0)], skip=keep)
+    groove(L, fus, [(68.6, 5.4), (68.6, 19.6)], skip=keep)                    # tail boom joint
+    for x in (85.2, 99.0, 112.4):
+        groove(L, fus, [(x, interp_y(BOOM_BOT, x) + 1.2), (x, interp_y(BOOM_TOP, x) - 2.0)])
+    # --- longitudinal joints
+    groove(L, fus, [(22.8, LONGERON_Y), (48.0, LONGERON_Y)], skip=keep)
+    groove(L, fus, [(51.4, LONGERON_Y), (72.0, LONGERON_Y)], skip=keep)
+    groove(L, fus, [(22.8, 8.6), (68.6, 8.6)], skip=keep)                    # belly panel
+    groove(L, fus, [(38.6, HUMP_BASE_Y), (62.6, HUMP_BASE_Y)], skip=keep)    # hump sits on the deck
+    # --- rivet rows: light dots down the middle of the panels (the Apache's look)
+    for x0, x1 in ((23.5, 34.0), (35.5, 42.0), (43.5, 53.0), (54.5, 61.0), (62.5, 68.0)):
+        dots(L, fus, x0, x1, 15.5, skip=keep)
+        dots(L, fus, x0, x1, 10.5, skip=keep)
+    for x0, x1 in ((69.5, 85.0), (86.5, 99.0), (100.0, 112.0), (113.5, 119.0)):
+        dots(L, fus, x0, x1, lambda x: interp_y(BOOM_TOP, x) - 4.4)
+    dots(L, fus, 43.5, 52.5, 29.5, skip=keep)
+    # --- hump: transmission cowl door with latches, engine cowl door with cooling louvres
+    groove(L, fus, rect(40.9, 28.6, 46.4, 33.2), dt=-2)
+    latch(L, 43.5, 29.4); latch(L, 45.5, 32.4)
+    groove(L, fus, [(53.4, 28.4), (53.4, 33.4)])
+    groove(L, fus, rect(54.4, 28.8, 61.4, 32.6), dt=-2)
+    for y in (31.5, 29.5):                                                    # cooling louvres: slit, lit lip
+        L.line(55.6, y, 60.2, y, 'dark', 1, only=fus)
+        L.line(55.6, y - 1.0, 60.2, y - 1.0, 'od', 6, only=fus)
+    latch(L, 62.5, 30.4)
+    # --- side doors: avionics bay under the pilot, ammunition bay and fuel filler aft of the wing
+    groove(L, fus, rect(26.6, 10.0, 32.8, 15.2), rivet=0)
+    latch(L, 31.5, 14.2); latch(L, 31.5, 11.2)
+    groove(L, fus, rect(62.6, 7.6, 66.4, 12.8))
+    latch(L, 65.5, 11.8)
+    L.P(67.6, 10.2, 'od', 1); L.P(68.0, 10.2, 'od', 2); L.P(67.6, 9.2, 'od', 6)     # fuel cap
+    # oil level window on the cowl
+    L.fill((X > 56.2) & (X < 57.9) & (Y > 24.2) & (Y < 26.6) & fus, 'dark', 1)
+    L.P(56.6, 25.8, 'glass', 5); L.P(57.4, 24.8, 'glass', 3)
+    # kick-in steps under the cockpits
+    for (x, y) in [(24.5, 7.5), (36.5, 12.5)]:
+        L.P(x, y, 'dark', 0); L.P(x, y - 1, 'od', 6)
+    # position light on the fin tip, anti-collision strobe on the boom (lenses neutral, tinted in code)
+    L.P(147.5, 33.0, 'white', 2)
+    # fin: driveshaft cover edge behind the leading edge, the tip cap joint
+    groove(L, fus, [(126.4, 19.6), (139.4, 30.2)], dt=-2)
+    groove(L, fus, [(141.2, 32.4), (147.6, 32.4)], dt=-1)
 
 
 def mast_beacon_pitot(L):
@@ -330,6 +449,7 @@ def skid_gear():
 def body_full():
     L, fus = body()
     details(L, fus)
+    finish_skin(L, fus)
     mast_beacon_pitot(L)
     G = skid_gear()
     E_, T, A = elevator_skid_antenna()
@@ -341,40 +461,36 @@ def body_full():
 
 # ------------------------------------------------------------------------------------------------------- canopy
 def canopy(fus):
+    """glass after the Apache canopy: sky reflected in the upper glass, darker toward the sill, two broad glints per
+    pane, black frames. Only the headrests show through."""
     C = cv.layer('Canopy')
     skin_edge = Layer.edge_of(fus)
     g = (cv.cov_poly(GLASS) >= 0.5) & fus & ~skin_edge
     C.fill(g, 'glass', 4)
     dt = runs_from(g, 'top'); db = runs_from(g, 'bot')
-    C.recolor(g & (dt <= 2), tone=5)
+    C.recolor(g & (dt <= 3), tone=5)
     C.recolor(g & (dt == 1), tone=6)
     C.recolor(g & (db <= 3), tone=3)
-    # what shows through: glare shields, the gunner's sight, seat backs and headrests
-    inside = [
-        [(9.2, 15.6), (13.4, 16.6), (13.4, 17.8), (9.8, 17.4)],             # gunner's panel
-        [(12.2, 17.6), (13.6, 17.6), (14.2, 20.6), (13.0, 20.9)],           # gunner's sight column
-        [(16.6, 17.4), (19.0, 18.0), (19.4, 22.8), (18.3, 23.4), (17.0, 22.4)],   # gunner's seat back and headrest
-        [(22.8, 18.6), (26.6, 19.3), (26.6, 20.4), (23.2, 20.3)],           # pilot's glare shield
-        [(25.2, 20.3), (26.2, 20.3), (26.2, 21.5), (25.2, 21.5)],           # reflex sight
-        [(33.0, 20.4), (35.8, 21.4), (36.4, 24.6), (35.0, 25.4), (33.6, 24.2)],   # pilot's seat back and headrest
-    ]
-    for poly in inside:
+    C.recolor(g & (db <= 1), tone=2)
+    # headrests through the glass (gunner's, pilot's)
+    for poly in ([(17.2, 20.0), (19.0, 20.4), (19.2, 22.6), (17.6, 22.6)],
+                 [(33.2, 22.0), (35.2, 22.6), (35.6, 25.0), (33.8, 25.0)]):
         m = (cv.cov_poly(poly) >= 0.45) & g
         C.recolor(m, tone=2)
         C.recolor(m & (runs_from(m, 'top') == 1), tone=3)
-    # glints (/), two per pane, as on the Apache canopy
-    for (xa, ya, xb, yb, t) in [(11.0, 17.4, 15.2, 24.8, 7), (13.6, 17.8, 16.9, 23.8, 6),
-                                (25.4, 20.6, 29.2, 26.6, 7), (28.0, 20.9, 31.3, 26.4, 6)]:
-        C.line(xa, ya, xb, yb, 'glass', t, only=g)
-    # frames: front bow, gunner / pilot divider, rear bow, bottom rail
+    # glints: broad bar then a thin one, raked like the Apache's
+    for (xa, ya, xb, yb) in [(10.6, 16.6, 15.8, 25.4), (25.2, 19.8, 29.6, 27.2)]:
+        for k, t in ((0.0, 7), (1.0, 7), (2.0, 6)):
+            C.line(xa + k, ya, xb + k, yb, 'glass', t, only=g)
+        C.line(xa + 4.0, ya, xb + 4.0, yb, 'glass', 6, only=g)
+    # frames: front bow, gunner / pilot divider (with its lit edge), rear bow, bottom rail
     C.line(*FRONT_FRAME[0], *FRONT_FRAME[1], 'od', 0, only=fus)
     C.line(*DIVIDER[0], *DIVIDER[1], 'od', 0, only=fus)
-    C.line(DIVIDER[0][0] + 1.0, DIVIDER[0][1] - 0.4, DIVIDER[1][0] + 1.0, DIVIDER[1][1] + 0.3, 'od', 4, only=g)
+    C.line(DIVIDER[0][0] + 1.0, DIVIDER[0][1] - 0.4, DIVIDER[1][0] + 1.0, DIVIDER[1][1] + 0.3, 'od', 5, only=g)
     C.line(*REAR_FRAME[0], *REAR_FRAME[1], 'od', 0, only=fus)
     gb = interp_y(GLASS_BOT, X); sl = interp_y(SILL, X)
     rail = fus & ~skin_edge & (X > 8.2) & (X < 38.2) & (Y < gb + 0.5) & (Y > sl)
     C.fill(rail & ~g, 'od', 1)
-    C.recolor(g & (db == 1), mat='od', tone=1)
     return C
 
 
@@ -444,65 +560,54 @@ def pod(x0, x1, y0, y1, name, bands):
 
 # -------------------------------------------------------------------------------------------------------- decals
 def shark(fus):
-    """shark mouth after the colour profile: red mouth, raked white teeth three cells apart that interlock, a dark
-    lip line all round, pointed corner with the cheek line running back"""
+    """shark mouth after the colour profile: a wedge opening back to a pointed corner, red inside going to a dark
+    throat, triangular white teeth (two-cell base, one-cell tip) on both jaws, interlocking, a dark lip all round and
+    a cheek line from the corner. The lower lip rides just above the turret notch."""
     D = cv.layer('Shark')
-    # the lower jaw rides just above the turret notch, so the mouth is a wedge that deepens toward the corner
-    # the lower jaw rides just above the turret notch, then drops behind the notch wall, so the mouth is a wedge
-    # that opens toward the corner
-    top = {10: 13.5, 11: 14.5}
-    top.update({x: 14.5 for x in range(12, 17)})
-    top.update({x: 15.5 for x in range(17, 25)})
-    top.update({25: 14.5, 26: 13.5})
-    bot = {10: 11.5, 11: 11.5, 12: 11.5, 13: 11.5, 14: 11.5, 15: 11.5, 16: 11.5, 17: 11.5, 18: 10.5, 19: 10.5,
-           20: 10.5, 21: 9.5, 22: 8.5, 23: 8.5, 24: 9.5, 25: 10.5, 26: 12.5}
+    xs = list(range(10, 28))
+    top = [13, 13, 14, 14, 14, 14, 15, 15, 15, 15, 15, 15, 15, 15, 14, 14, 13, 13]      # interior rows (cell y)
+    bot = [12, 12, 12, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 12, 13, 13, 13]
     mouth = np.zeros((H, W), bool)
-    for x in top:
-        for y in np.arange(top[x] - 1.0, bot[x] + 0.5, -1.0):
-            c, r = cv.cell(x + 0.5, y)
+    T = {}; B_ = {}
+    for x, t, b in zip(xs, top, bot):
+        T[x], B_[x] = t, b
+        for y in range(b, t + 1):
+            c, r = cv.cell(x + 0.5, y + 0.5)
             mouth[r, c] = True
-    # red, brighter at the front, a dark throat at the back
     for r, c in zip(*np.nonzero(mouth)):
         x = c - OX
-        k = (x - 10) / 13.0
-        D.put(c, r, 'red', 4 if k < 0.2 else 3 if k < 0.5 else 2)
-    dt = runs_from(mouth, 'top'); db = runs_from(mouth, 'bot')
-    throat = mouth & (dt > 2) & (db > 2) & (X > 16.0)
-    D.recolor(throat, tone=1)
-    # teeth: bases two cells of every three along each jaw, tips raked back, upper and lower offset to interlock
-    for r, c in zip(*np.nonzero(mouth)):
-        x = c - OX
-        if x < 11:
-            continue
-        n = dt[r, c] + db[r, c] - 1                          # interior height of this column
-        if n <= 2:                                            # thin front of the mouth: upper teeth only
-            if dt[r, c] == 1 and x % 2 == 0:
-                D.put(c, r, 'white', 3)
-            continue
-        if dt[r, c] == 1 and x % 3 != 1:
-            D.put(c, r, 'white', 3)
-        elif dt[r, c] == 2 and x % 3 == 0 and n >= 4:
-            D.put(c, r, 'white', 2)
-        elif db[r, c] == 1 and x % 3 != 2:
-            D.put(c, r, 'white', 2)
-        elif db[r, c] == 2 and x % 3 == 1 and n >= 5:
-            D.put(c, r, 'white', 1)
-    # lip line all round, then the cheek line from the corner
+        D.put(c, r, 'red', 4 if x < 13 else 3 if x < 18 else 2)
+    dtm = runs_from(mouth, 'top'); dbm = runs_from(mouth, 'bot')
+    D.recolor(mouth & (dtm > 1) & (dbm > 1) & (X > 18.0), tone=1)              # throat
+    D.recolor(mouth & (dtm > 1) & (dbm > 1) & (X > 22.0), tone=0)
+
+    def tooth(x, y_base, down):
+        c, r = cv.cell(x + 0.5, y_base + 0.5)
+        for dc in (0, 1):
+            if mouth[r, c + dc]:
+                D.put(c + dc, r, 'white', 3)
+        rt = r + 1 if down else r - 1
+        if 0 <= rt < H and mouth[rt, c] and (T[x] - B_[x] >= 2):
+            D.put(c, rt, 'white', 1)
+    for x in range(11, 24, 3):                    # upper teeth hang from the top row
+        tooth(x, T[x], True)
+    for x in range(13, 23, 3):                    # lower teeth stand on the bottom row, between the upper ones
+        tooth(x, B_[x], False)
+    # dark lip all round, the cheek line from the corner
     grow = mouth.copy()
     for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
         grow |= shift(mouth, dy, dx)
-    lip = grow & ~mouth
-    D.fill(lip, 'red', 0)
-    for (x, y, t) in [(27.5, 13.5, 0), (28.5, 14.5, 0), (29.5, 14.5, 0)]:
-        D.P(x, y, 'red', t)
+    D.fill(grow & ~mouth, 'red', 0)
+    for (x, y) in [(28.5, 13.5), (29.5, 14.5)]:
+        D.P(x, y, 'red', 0)
     D.erase(~fus | Layer.edge_of(fus))
     return D
 
 
 FONT = {
-    'U': ['X.X', 'X.X', 'X.X', 'XXX'], 'S': ['XXX', 'XX.', '..X', 'XXX'], 'A': ['.X.', 'X.X', 'XXX', 'X.X'],
-    'R': ['XX.', 'X.X', 'XX.', 'X.X'], 'M': ['X.X', 'XXX', 'X.X', 'X.X'], 'Y': ['X.X', 'X.X', '.X.', '.X.'],
-    '.': ['.', '.', '.', 'X'], ' ': ['.', '.', '.', '.'],
+    'U': ['X.X', 'X.X', 'X.X', 'XXX'], 'S': ['.XX', 'X..', '..X', 'XX.'], 'A': ['.X.', 'X.X', 'XXX', 'X.X'],
+    'R': ['XX.', 'X.X', 'XX.', 'X.X'], 'M': ['X...X', 'XX.XX', 'X.X.X', 'X...X'], 'Y': ['X.X', 'X.X', '.X.', '.X.'],
+    '.': ['.', '.', '.', 'X'], ' ': ['', '', '', ''],          # a space is just one more gap
 }
 
 
@@ -654,8 +759,8 @@ def build(write=True):
         'CobraBoss': Lb.render(),
         'CobraBoss_Canopy': canopy(fus).render(),
         'CobraBoss_Shark': shark(fus).render(),
-        'CobraBoss_MarksL': stencil('U.S. ARMY', 70.2, 14.6, False).render(),
-        'CobraBoss_MarksR': stencil('U.S. ARMY', 70.2, 14.6, True).render(),
+        'CobraBoss_MarksL': stencil('U.S. ARMY', 67.6, 13.6, False).render(),
+        'CobraBoss_MarksR': stencil('U.S. ARMY', 67.6, 13.6, True).render(),
         'CobraBoss_Turret': turret().render(),
         'CobraBoss_PodIn': pod(*POD_IN[:2], 7.4, 11.4, 'PodIn', bands=(41.0, 54.4)).render(),
         'CobraBoss_PodOut': pod(POD_OUT[0], POD_OUT[1], 6.4, 11.4, 'PodOut', bands=(40.4, 54.9)).render(),
