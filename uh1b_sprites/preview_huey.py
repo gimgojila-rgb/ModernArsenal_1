@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'ah1g_sprites'))
-import build_huey as BH                     # noqa: E402
+import build_huey2 as BH                    # noqa: E402  (second pass, traced on the clean profile)
 import preview as PC                        # noqa: E402  (Cobra preview helpers)
 
 OUT = os.path.join(HERE, 'out')
@@ -14,7 +14,7 @@ def L(n):
     return Image.open(os.path.join(OUT, n + '.png')).convert('RGBA')
 
 
-def huey(rotor_i=0, tail_deg=70.0, flip=False, blur=False):
+def huey(rotor_i=0, tail_deg=70.0, flip=False, blur=False, weapons=True):
     c = json.load(open(os.path.join(OUT, 'HueyBoss_coords.json')))
     pad_x, pad_y = 40, 16
     Wc, Hc = c['body_size'][0] + 2 * pad_x, c['body_size'][1] + 2 * pad_y
@@ -35,8 +35,9 @@ def huey(rotor_i=0, tail_deg=70.0, flip=False, blur=False):
     paste(L('HueyBoss'), (cx, cy), bo)
     paste(L('HueyBoss_Glass'), (cx, cy), bo)
     im.alpha_composite(L('HueyBoss_MarksR' if flip else 'HueyBoss_MarksL'), (int(cx - bo[0]), int(cy - bo[1])))
-    paste(L('HueyBoss_Turret'), (cx, cy), bo)
-    paste(L('HueyBoss_Pod'), (cx, cy), bo)
+    if weapons:
+        paste(L('HueyBoss_Turret'), (cx, cy), bo)
+        paste(L('HueyBoss_Pod'), (cx, cy), bo)
     paste(tr, at(c['tail_rotor_hub']), (tr.width / 2, tr.height / 2))
     rf = c['rotor_frame']
     rot = L('HueyBoss_MainRotorBlur') if blur else PC.frame(L('HueyBoss_MainRotor'), rotor_i, rf['size'][1], rf['stride'])
@@ -71,4 +72,5 @@ if __name__ == '__main__':
     dst = sys.argv[1] if len(sys.argv) > 1 else OUT
     os.makedirs(dst, exist_ok=True)
     closeup(os.path.join(dst, 'preview_huey_x4.png'))
+    closeup(os.path.join(dst, 'preview_huey_unarmed_x4.png'), weapons=False)
     pair(os.path.join(dst, 'preview_huey_cobra.png'))

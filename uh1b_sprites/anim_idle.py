@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(HERE, '..', 'ah1g_sprites'))
 import preview_huey as PH          # noqa: E402
 import preview as PC               # noqa: E402
 import build_cobra as BC           # noqa: E402
-import build_huey as BH            # noqa: E402
+import build_huey2 as BH           # noqa: E402
 
 TICKS, STEP, SCALE = 144, 2, 2
 MAIN_DEG, TAIL_MUL = 29.0, 4.86          # the Apache's rotor speeds
@@ -61,9 +61,9 @@ def run(kind, path):
         else:
             im, (cx, cy), c = PH.huey(rotor_i=rot_i, tail_deg=tail)
             blur, _, _ = PH.huey(rotor_i=rot_i, tail_deg=tail, blur=True)
-            off = lambda x, y: BH.to2x_offset(x, y)
-            lights = [('pos', off(*BH.c((616, 190))), (255, 50, 40)), ('beacon', off(*BH.BEACON), (255, 40, 30)),
-                      ('tail', off(*BH.c((1464, 246))), (255, 250, 235)), ('strobe', off(*BH.c((1520, 132))), (255, 255, 255))]
+            lt = c['lights']
+            lights = [('pos', lt['position_red'], (255, 50, 40)), ('beacon', lt['beacon'], (255, 40, 30)),
+                      ('tail', lt['tail_white'], (255, 250, 235)), ('strobe', lt['strobe'], (255, 255, 255))]
         # spinning look: blur disc with the blade frame over it at part strength
         a = np.asarray(blur).astype(np.float32)
         b = np.asarray(im).astype(np.float32)
