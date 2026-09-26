@@ -21,9 +21,12 @@ BOOM_BOT = [(133.3, 13.9), (132.3, 13.25), (130, 12.55), (125, 11.75), (120, 11.
             (105, 9.4), (100, 8.85), (95, 8.25), (90, 7.65), (85, 7.1), (80, 6.55), (75, 5.95), (70, 5.45),
             (67, 5.05), (65, 4.95)]
 BELLY = [(60, 4.9), (50, 4.85), (40, 4.95), (30, 5.0), (25, 5.1), (22.5, 5.3)]
-CHIN = [(21, 5.65), (20, 5.9), (19, 6.1), (18, 6.35), (17, 6.55), (16, 6.7), (15, 7.0), (14, 7.2), (13, 7.5),
-        (12, 7.8), (11, 8.05), (10, 8.35), (9, 8.7), (8, 9.0), (7, 9.2), (6, 9.55), (5, 9.95), (4, 10.35),
-        (3, 10.65), (2, 11.05), (1, 11.45), (0.2, 11.8), (-0.2, 12.4)]
+# chin: the turret sits in a square notch cut into the underside of the nose (photo of the turret, and the
+# production line profile). Ceiling at 9.6, the notch's rear wall at x 20.4 dropping to the belly.
+NOTCH_Y, NOTCH_X0, NOTCH_X1 = 9.6, 9.9, 21.4
+CHIN = [(21.4, 5.4), (NOTCH_X1, NOTCH_Y), (NOTCH_X0, NOTCH_Y), (9, 9.55), (8, 9.45), (7, 9.45), (6, 9.6),
+        (5, 9.95), (4, 10.35), (3, 10.65), (2, 11.05), (1, 11.45), (0.2, 11.8), (-0.2, 12.4)]
+CAVITY = (18.0, NOTCH_X1, 5.4, NOTCH_Y)          # the part of the notch the turret does not fill: dark
 
 FUSELAGE = NOSE + TOP_FWD + HUMP + NOZZLE + BOOM_TOP + FIN_LE + FIN_TOP + FIN_TE + BOOM_BOT + BELLY + CHIN
 
@@ -63,12 +66,20 @@ TAIL_SKID = [(132.4, 13.4), (145.2, 11.6)]
 SKID = (22.0, 57.5)                             # x span of the skid tube, bottom at y 0
 STRUTS = (34.2, 51.4)                           # x centres of the cross tube legs
 
-# chin turret: a ball tucked under the nose (photo and box art), 40 mm M129 grenade launcher with a short barrel.
-# Bottom 0.35 m off the ground (Bell drawing: 1'1.25").
-TURRET_C = (13.2, 7.1)          # ball centre just under the chin; the upper part hides in the nose
-TURRET_R = (4.8, 5.0)            # 0.88 m ball, hangs 0.45-0.5 m under the chin
-GUN_PIVOT = (13.2, 5.2)          # elevation axis
-MUZZLE_X = 5.2                   # at rest the barrel stands about 3.4 cells (0.31 m) proud of the dome
+# chin turret (M28 type, 40 mm M129): a drum with a lid, square with round corners side on, hung in the notch.
+# Stamp rows run from y 9.5 down; columns from x 10 (front face) aft. 'o' outline, digits OD tones, 's' gun slot.
+TURRET_X0, TURRET_TOP = 10, 9.5
+TURRET_STAMP = [
+    '.oooooo.',
+    'o7766554',
+    'o3222221',
+    's6665543',
+    's5554432',
+    'o4443321',
+    '.oooooo.',
+]
+GUN_PIVOT = (12.2, 6.0)          # elevation axis inside the drum, level with the slot under the lid
+MUZZLE_X = 8.1                   # barrel stands about 1.9 cells (0.17 m) proud of the front face
 
 # rocket pods: outboard M200A1 19-tube (1.69 m x 0.41 m), inboard M158A1 7-tube (about 1.6 m x 0.27 m)
 POD_OUT = (38.3, 56.8, 7.0, 11.4)               # x0, x1, y0, y1

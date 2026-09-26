@@ -55,6 +55,9 @@ def interp_y(pts, x):
 def body():
     L = cv.layer('Body')
     fus = L.poly(FUSELAGE, 'od', 4)
+    cx0, cx1, cy0, cy1 = CAVITY
+    cav = (X > cx0) & (X < cx1) & (Y > cy0) & (Y < cy1)
+    fus = fus | cav
     glass = cv.cov_poly(GLASS) >= 0.5
     dtop = runs_from(fus, 'top'); dbot = runs_from(fus, 'bot')
 
@@ -153,6 +156,11 @@ def body():
     L.fill(gb & fus, 'od', 4)
     L.recolor(gb & (cv.cov_ell(TAIL_HUB[0] - 0.4, TAIL_HUB[1] + 0.4, 2.0, 1.8) >= 0.5), tone=6)
     L.recolor(gb & (Y < TAIL_HUB[1] - 1.4), tone=3)
+
+    # the turret notch: the inside of the recess behind the turret is in shadow; its rear wall catches light
+    L.fill(cav, 'dark', 1)
+    L.recolor(cav & (Y > cy1 - 1.0), tone=0)
+    L.fill(fus & (X > cx1) & (X < cx1 + 1.0) & (Y > cy0 + 0.6) & (Y < cy1), 'od', 6)
 
     # cockpit interior under the glass (shows if the canopy layer is left off)
     L.fill(glass & fus & (dtop > 1), 'dark', 2)
@@ -372,35 +380,27 @@ def canopy(fus):
 
 # ------------------------------------------------------------------------------------------------------ turret
 def turret():
-    """chin turret: a dome hanging under the nose (only its lower half shows), shaded as a sphere lit from up, front
-    and toward the viewer, with the gun slot in front and a dark ring where it meets the skin"""
+    """chin turret after the photo: a drum with a lid, square with rounded corners side on, lit lid, dark seam under
+    the lid, drum lighter at the front, gun slot in the upper front face"""
     T = cv.layer('Turret')
-    cx, cy = TURRET_C; rx, ry = TURRET_R
-    chin = interp_y(CHIN + BELLY[::-1], X)
-    dome = (cv.cov_ell(cx, cy, rx, ry) >= 0.5) & (Y < chin + 0.3)
-    T.fill(dome, 'od', 4)
-    nx = (X - cx) / rx; ny = (Y - cy) / ry
-    nz = np.sqrt(np.clip(1 - nx ** 2 - ny ** 2, 0, 1))
-    lx, ly, lz = -0.3, 0.35, 0.89
-    lam = (nx * lx + ny * ly + nz * lz) / np.sqrt(lx * lx + ly * ly + lz * lz)
-    T.tone[dome] = np.select([lam > 0.9, lam > 0.76, lam > 0.56, lam > 0.34, lam > 0.1], [7, 6, 5, 4, 3], 2)[dome]
-    # outline, except along the top where the dome tucks into the chin: there a one-row ring seam
-    dt = runs_from(dome, 'top')
-    e = Layer.edge_of(dome)
-    T.recolor(e & (dt > 1), tone=0)
-    T.recolor(dome & (dt == 1), tone=3)
-    # a dark notch where the barrel leaves the dome
-    c, r = cv.cell(cx - rx + 0.6, GUN_PIVOT[1])
-    for dr in (-1, 0, 1):
-        if dome[r + dr, c]:
-            T.put(c, r + dr, 'dark', 0)
+    for j, row in enumerate(TURRET_STAMP):
+        for i, ch in enumerate(row):
+            if ch == '.':
+                continue
+            x, y = TURRET_X0 + i + 0.5, TURRET_TOP - j
+            if ch == 'o':
+                T.P(x, y, 'od', 0)
+            elif ch == 's':
+                T.P(x, y, 'dark', 0)
+            else:
+                T.P(x, y, 'od', int(ch))
     return T
 
 
 def gun_frames():
-    """M129 40 mm grenade launcher: short thick barrel with a flash suppressor at the muzzle. Muzzle to the left,
-    pivot on the turret's elevation axis. Frames: 0 at rest, 1 recoiled a cell."""
-    length = GUN_PIVOT[0] - MUZZLE_X                      # cells from muzzle to pivot
+    """M129 40 mm grenade launcher barrel: stubby, a flash suppressor ring at the muzzle. Muzzle to the left, pivot on
+    the elevation axis inside the drum (only the stub ahead of the front face shows). Frames: 0 rest, 1 recoil."""
+    length = GUN_PIVOT[0] - MUZZLE_X
     w, h = int(np.ceil(length)) + 2, 4
     frames = []
     for recoil in (0, 1):
@@ -409,15 +409,12 @@ def gun_frames():
             if 0 <= c < w and 0 <= r < h:
                 a[r, c, :3] = RAMPS[mat][t]; a[r, c, 3] = 255
         x0 = recoil
-        for c in range(x0 + 1, w):                        # barrel: lit top row, dark under side
-            put(c, 1, 'steel', 5); put(c, 2, 'steel', 2)
-        for r in (0, 1, 2, 3):                            # flash suppressor, a size up from the barrel
-            put(x0 + 1, r, 'steel', 5 if r == 1 else 3 if r == 0 else 1 if r == 2 else 0)
-            put(x0, r, 'steel', 2 if r in (1, 2) else 0)
-        put(x0, 1, 'steel', 1); put(x0, 2, 'steel', 0)   # bore
-        put(x0 + 3, 1, 'steel', 6)                        # glint
+        for c in range(x0 + 1, w):
+            put(c, 0, 'steel', 0); put(c, 1, 'steel', 4); put(c, 2, 'steel', 2); put(c, 3, 'steel', 0)
+        put(x0, 0, 'steel', 0); put(x0, 1, 'steel', 6); put(x0, 2, 'steel', 3); put(x0, 3, 'steel', 0)   # muzzle ring
+        put(x0 + 1, 1, 'steel', 1); put(x0 + 1, 2, 'steel', 0)                                           # bore shadow
         frames.append(a)
-    return frames, (length + 0.5, 1.75)
+    return frames, (length + 0.5, 2.0)
 
 
 # -------------------------------------------------------------------------------------------------------- pods
@@ -450,11 +447,15 @@ def shark(fus):
     """shark mouth after the colour profile: red mouth, raked white teeth three cells apart that interlock, a dark
     lip line all round, pointed corner with the cheek line running back"""
     D = cv.layer('Shark')
-    top = {10: 12.5, 11: 13.5}
-    top.update({x: 14.5 for x in range(12, 22)})
-    top.update({22: 13.5, 23: 12.5})
-    bot = {10: 10.5, 11: 9.5, 12: 9.5, 13: 8.5, 14: 8.5, 15: 8.5, 16: 8.5, 17: 7.5, 18: 7.5, 19: 7.5, 20: 7.5,
-           21: 7.5, 22: 8.5, 23: 10.5}
+    # the lower jaw rides just above the turret notch, so the mouth is a wedge that deepens toward the corner
+    # the lower jaw rides just above the turret notch, then drops behind the notch wall, so the mouth is a wedge
+    # that opens toward the corner
+    top = {10: 13.5, 11: 14.5}
+    top.update({x: 14.5 for x in range(12, 17)})
+    top.update({x: 15.5 for x in range(17, 25)})
+    top.update({25: 14.5, 26: 13.5})
+    bot = {10: 11.5, 11: 11.5, 12: 11.5, 13: 11.5, 14: 11.5, 15: 11.5, 16: 11.5, 17: 11.5, 18: 10.5, 19: 10.5,
+           20: 10.5, 21: 9.5, 22: 8.5, 23: 8.5, 24: 9.5, 25: 10.5, 26: 12.5}
     mouth = np.zeros((H, W), bool)
     for x in top:
         for y in np.arange(top[x] - 1.0, bot[x] + 0.5, -1.0):
@@ -473,13 +474,18 @@ def shark(fus):
         x = c - OX
         if x < 11:
             continue
+        n = dt[r, c] + db[r, c] - 1                          # interior height of this column
+        if n <= 2:                                            # thin front of the mouth: upper teeth only
+            if dt[r, c] == 1 and x % 2 == 0:
+                D.put(c, r, 'white', 3)
+            continue
         if dt[r, c] == 1 and x % 3 != 1:
             D.put(c, r, 'white', 3)
-        elif dt[r, c] == 2 and x % 3 == 0:
+        elif dt[r, c] == 2 and x % 3 == 0 and n >= 4:
             D.put(c, r, 'white', 2)
-        elif db[r, c] == 1 and x % 3 != 2 and x > 11:
+        elif db[r, c] == 1 and x % 3 != 2:
             D.put(c, r, 'white', 2)
-        elif db[r, c] == 2 and x % 3 == 1 and x > 12:
+        elif db[r, c] == 2 and x % 3 == 1 and n >= 5:
             D.put(c, r, 'white', 1)
     # lip line all round, then the cheek line from the corner
     grow = mouth.copy()
@@ -487,7 +493,7 @@ def shark(fus):
         grow |= shift(mouth, dy, dx)
     lip = grow & ~mouth
     D.fill(lip, 'red', 0)
-    for (x, y, t) in [(24.5, 11.5, 0), (25.5, 12.5, 0), (26.5, 12.5, 0)]:
+    for (x, y, t) in [(27.5, 13.5, 0), (28.5, 14.5, 0), (29.5, 14.5, 0)]:
         D.P(x, y, 'red', t)
     D.erase(~fus | Layer.edge_of(fus))
     return D
