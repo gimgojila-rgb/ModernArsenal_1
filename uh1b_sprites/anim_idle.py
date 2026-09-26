@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(HERE, '..', 'ah1g_sprites'))
 import preview_huey as PH          # noqa: E402
 import preview as PC               # noqa: E402
 import build_cobra as BC           # noqa: E402
-import build_huey2 as BH           # noqa: E402
+import build_huey3 as BH           # noqa: E402
 
 TICKS, STEP, SCALE = 144, 2, 2
 MAIN_DEG, TAIL_MUL = 29.0, 4.86          # the Apache's rotor speeds

@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'ah1g_sprites'))
-import build_huey2 as BH                    # noqa: E402  (second pass, traced on the clean profile)
+import build_huey3 as BH                    # noqa: E402  (third pass: line drawing + colour profile)
 import preview as PC                        # noqa: E402  (Cobra preview helpers)
 
 OUT = os.path.join(HERE, 'out')
