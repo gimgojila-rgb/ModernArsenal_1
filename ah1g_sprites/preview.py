@@ -31,7 +31,7 @@ def frame(sheet, i, h, stride):
     return sheet.crop((0, i * stride, sheet.width, i * stride + h))
 
 
-def cobra(rotor_i=0, gun_i=0, gun_deg=0.0, tail_deg=30.0, flip=False, shark=True, pods=True, blur=False,
+def cobra(rotor_i=0, gun_i=0, gun_deg=0.0, tail_deg=70.0, flip=False, shark=True, pods=True, blur=False,
           canopy=True, turret=True):
     """assembled Cobra on a transparent canvas with room for the rotors; returns (image, body origin in it)"""
     c = json.load(open(os.path.join(OUT, 'CobraBoss_coords.json')))

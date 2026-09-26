@@ -114,12 +114,15 @@ def body():
 
     # exhaust nozzle: burnt steel, rim catching light at the back
     noz = fus & (X > 72.3) & (X < 75.4) & (Y > 19.2) & (Y < 26.2)
-    L.recolor(noz, mat='burnt', tone=3)
-    L.recolor(noz & (Y > 24.2), tone=4)
-    L.recolor(noz & (Y < 21.0), tone=2)
-    L.recolor(noz & (X > 74.2), mat='steel', tone=5)
-    L.recolor(noz & (X > 74.2) & (Y > 24.2), tone=6)
-    L.recolor(noz & (X > 74.2) & (Y < 20.4), tone=3)
+    L.recolor(noz, mat='steel', tone=3)
+    L.recolor(noz & (Y > 24.0), tone=5)
+    L.recolor(noz & (Y > 22.4) & (Y <= 24.0), tone=4)
+    L.recolor(noz & (Y < 21.2), tone=1)
+    L.recolor(noz & (X < 73.2) & (Y > 21.2), mat='burnt', tone=4)            # heat tint behind the rim
+    L.recolor(noz & (X > 74.0), mat='steel', tone=5)               # rim
+    L.recolor(noz & (X > 74.0) & (Y > 24.0), tone=7)
+    L.recolor(noz & (X > 74.0) & (Y < 21.8), tone=2)
+    L.recolor(fus & (X > 71.4) & (X < 72.4) & (Y > 19.6) & (Y < 25.6), mat='od', tone=1)   # joint to the nacelle
 
     # tail boom: driveshaft fairing along the top, seam under it, then the tapering side
     boom = fus & (X >= 72) & (X < 121.5)
@@ -241,6 +244,27 @@ def mast_beacon_pitot(L):
     L.P(-1.5, 14.2, 'steel', 5); L.P(-0.5, 14.2, 'steel', 4); L.P(-2.5, 14.2, 'steel', 6)
 
 
+WING_STAMP = [          # stub wing tip seen end on, x 41..53, rows y 15.5 .. 12.5 ('o' outline, digits = OD tone)
+    '..ooooooo....',
+    '.o77666666oo.',
+    'o655555555544o',
+    '.oo333333oooo',
+]
+ELEV_STAMP = [          # synchronised elevator end on, x 98..109, rows y 13.5 .. 11.5
+    '.ooooooo....',
+    'o7766655544o',
+    '.ooooooooooo',
+]
+
+
+def stamp_od(L, rows, x0, y_top, light_mat='od'):
+    for j, row in enumerate(rows):
+        for i, ch in enumerate(row):
+            if ch == '.':
+                continue
+            L.P(x0 + i + 0.5, y_top - j, light_mat, 0 if ch == 'o' else int(ch))
+
+
 def wing_and_racks():
     R = cv.layer('rack')
     rk = R.poly(RACK, 'steel', 2)
@@ -248,25 +272,14 @@ def wing_and_racks():
     R.P(45.3, 11.9, 'steel', 5); R.P(48.9, 11.9, 'steel', 5)
     outlined(R, 0, 'steel')
     Wg = cv.layer('wing')
-    w = Wg.poly(WING, 'od', 4)
-    dt = runs_from(w, 'top'); db = runs_from(w, 'bot')
-    Wg.recolor(w, tone=5)
-    Wg.recolor(w & (dt == 2), tone=7)
-    Wg.recolor(w & (db == 2), tone=3)
-    Wg.recolor(w & (X > 50.6), tone=4)
-    outlined(Wg)
-    Wg.P(42.0, 14.4, 'white', 2)                                              # wingtip position light lens
+    stamp_od(Wg, WING_STAMP, 41, 15.5)
+    Wg.P(42.5, 14.5, 'white', 2)                                              # wingtip position light lens
     return R, Wg
 
 
 def elevator_skid_antenna():
     E_ = cv.layer('elev')
-    m = E_.poly(ELEVATOR, 'od', 4)
-    dt = runs_from(m, 'top'); db = runs_from(m, 'bot')
-    E_.recolor(m, tone=5)
-    E_.recolor(m & (dt == 2), tone=7)
-    E_.recolor(m & (db == 2), tone=3)
-    outlined(E_)
+    stamp_od(E_, ELEV_STAMP, 98, 13.5)
     T = cv.layer('tailskid')
     (x0, y0), (x1, y1) = TAIL_SKID
     for x in np.arange(x0, x1 + 0.01, 0.5):
@@ -359,101 +372,123 @@ def canopy(fus):
 
 # ------------------------------------------------------------------------------------------------------ turret
 def turret():
-    """ball turret: lit from above-front, terminator low, dark underside, a ring where it meets the chin"""
+    """chin turret: a dome hanging under the nose (only its lower half shows), shaded as a sphere lit from up, front
+    and toward the viewer, with the gun slot in front and a dark ring where it meets the skin"""
     T = cv.layer('Turret')
     cx, cy = TURRET_C; rx, ry = TURRET_R
-    ball = T.ell(cx, cy, rx, ry, 'od', 4)
     chin = interp_y(CHIN + BELLY[::-1], X)
-    ball &= Y < chin + 0.2                                    # the top half sits inside the nose
-    T.erase(~ball)
-    nx = (X - cx) / rx; ny = (Y - cy) / ry                  # sphere shading, light from up-left-front
-    lam = -0.55 * nx + 0.62 * ny + 0.55 * np.sqrt(np.clip(1 - nx ** 2 - ny ** 2, 0, 1))
-    T.tone[ball] = np.select([lam > 0.75, lam > 0.5, lam > 0.22, lam > -0.05, lam > -0.35], [7, 6, 5, 4, 3], 2)[ball]
-    ring = ball & (Y > chin - 0.8)
-    T.recolor(ring, tone=2)
-    # gun port: the vertical slot the barrel rides in, on the front face
-    T.fill(ball & (X < cx - rx + 1.2) & (Y > cy - 1.6) & (Y < cy + 1.4), 'dark', 1)
-    outlined(T)
+    dome = (cv.cov_ell(cx, cy, rx, ry) >= 0.5) & (Y < chin + 0.3)
+    T.fill(dome, 'od', 4)
+    nx = (X - cx) / rx; ny = (Y - cy) / ry
+    nz = np.sqrt(np.clip(1 - nx ** 2 - ny ** 2, 0, 1))
+    lx, ly, lz = -0.3, 0.35, 0.89
+    lam = (nx * lx + ny * ly + nz * lz) / np.sqrt(lx * lx + ly * ly + lz * lz)
+    T.tone[dome] = np.select([lam > 0.9, lam > 0.76, lam > 0.56, lam > 0.34, lam > 0.1], [7, 6, 5, 4, 3], 2)[dome]
+    # outline, except along the top where the dome tucks into the chin: there a one-row ring seam
+    dt = runs_from(dome, 'top')
+    e = Layer.edge_of(dome)
+    T.recolor(e & (dt > 1), tone=0)
+    T.recolor(dome & (dt == 1), tone=3)
+    # a dark notch where the barrel leaves the dome
+    c, r = cv.cell(cx - rx + 0.6, GUN_PIVOT[1])
+    for dr in (-1, 0, 1):
+        if dome[r + dr, c]:
+            T.put(c, r + dr, 'dark', 0)
     return T
 
 
 def gun_frames():
-    """M129 40 mm grenade launcher: short, thick barrel with a muzzle ring. Muzzle left, pivot at the ball centre.
-    Two frames: 0 at rest, 1 recoiled one cell (for the shot)."""
-    w, h = 7, 4
+    """M129 40 mm grenade launcher: short thick barrel with a flash suppressor at the muzzle. Muzzle to the left,
+    pivot on the turret's elevation axis. Frames: 0 at rest, 1 recoiled a cell."""
+    length = GUN_PIVOT[0] - MUZZLE_X                      # cells from muzzle to pivot
+    w, h = int(np.ceil(length)) + 2, 4
     frames = []
     for recoil in (0, 1):
         a = np.zeros((h, w, 4), np.uint8)
         def put(c, r, mat, t):
-            if 0 <= c < w:
+            if 0 <= c < w and 0 <= r < h:
                 a[r, c, :3] = RAMPS[mat][t]; a[r, c, 3] = 255
         x0 = recoil
-        for c in range(x0, w):
-            put(c, 0, 'steel', 0); put(c, 3, 'steel', 0)
+        for c in range(x0 + 1, w):                        # barrel: lit top row, dark under side
             put(c, 1, 'steel', 5); put(c, 2, 'steel', 2)
-        put(x0, 1, 'steel', 1); put(x0, 2, 'steel', 0)          # bore
-        put(x0 + 1, 1, 'steel', 7); put(x0 + 1, 2, 'steel', 4)  # muzzle ring
-        put(x0 + 3, 1, 'steel', 6)
+        for r in (0, 1, 2, 3):                            # flash suppressor, a size up from the barrel
+            put(x0 + 1, r, 'steel', 5 if r == 1 else 3 if r == 0 else 1 if r == 2 else 0)
+            put(x0, r, 'steel', 2 if r in (1, 2) else 0)
+        put(x0, 1, 'steel', 1); put(x0, 2, 'steel', 0)   # bore
+        put(x0 + 3, 1, 'steel', 6)                        # glint
         frames.append(a)
-    return frames, (6.0, 2.0)
+    return frames, (length + 0.5, 1.75)
 
 
 # -------------------------------------------------------------------------------------------------------- pods
 def pod(x0, x1, y0, y1, name, bands):
+    """rocket pod side on: a cylinder (hard highlight on top, dark belly), rounded ends, a lit rim at the open front,
+    darker aft cap, strap bands"""
     P = cv.layer(name)
     m = P.fill((X > x0) & (X < x1) & (Y > y0) & (Y < y1), 'od', 4)
     rows = sorted(set(np.nonzero(m)[0]))
     top, bot = rows[0], rows[-1]
     cols = np.nonzero(m.any(0))[0]; c0, c1 = cols[0], cols[-1]
-    for r in rows:
-        k = (r - top) / max(1, bot - top)
-        t = 6 if k < 0.2 else 5 if k < 0.45 else 4 if k < 0.65 else 3 if k < 0.85 else 2
+    inner = rows[1:-1]
+    ramp = {1: [5], 2: [6, 3], 3: [6, 4, 2], 4: [6, 5, 3, 2]}[len(inner)]
+    for r, t in zip(inner, ramp):
         P.tone[r, m[r]] = t
     for c in (c0, c1):                                  # round the ends
         P.mat[top, c] = 0; P.mat[bot, c] = 0
     for bx in bands:
         c, _ = cv.cell(bx, y0)
-        P.tone[top:bot + 1, c] = np.maximum(1, P.tone[top:bot + 1, c] - 2)
-    P.tone[top + 1, c0 + 1] = 7                         # rim glint at the front
+        P.tone[top + 1:bot, c] = np.maximum(1, P.tone[top + 1:bot, c] - 2)
+    P.tone[top + 1:bot, c0 + 1] = np.minimum(7, P.tone[top + 1:bot, c0 + 1] + 1)   # lit front rim
+    P.tone[top + 1, c0 + 1] = 7
+    P.tone[top + 1:bot, c1 - 1] = np.maximum(1, P.tone[top + 1:bot, c1 - 1] - 1)   # aft cap
     outlined(P)
     return P
 
 
 # -------------------------------------------------------------------------------------------------------- decals
 def shark(fus):
-    """shark mouth after the colour profile: level upper lip, lower lip riding the chin, pointed corner and cheek line,
-    raked teeth three cells apart that interlock"""
+    """shark mouth after the colour profile: red mouth, raked white teeth three cells apart that interlock, a dark
+    lip line all round, pointed corner with the cheek line running back"""
     D = cv.layer('Shark')
-    # lip rows per column (cell centres): upper lip, lower lip
-    top = {9: 11.5, 10: 12.5, 11: 13.5, 12: 13.5, 13: 13.5, 14: 13.5, 15: 13.5, 16: 13.5, 17: 13.5, 18: 13.5,
-           19: 13.5, 20: 13.5, 21: 13.5, 22: 12.5, 23: 11.5}
-    bot = {9: 10.5, 10: 9.5, 11: 9.5, 12: 9.5, 13: 8.5, 14: 8.5, 15: 8.5, 16: 8.5, 17: 7.5, 18: 7.5, 19: 7.5,
-           20: 7.5, 21: 7.5, 22: 8.5, 23: 10.5}
+    top = {10: 12.5, 11: 13.5}
+    top.update({x: 14.5 for x in range(12, 22)})
+    top.update({22: 13.5, 23: 12.5})
+    bot = {10: 10.5, 11: 9.5, 12: 9.5, 13: 8.5, 14: 8.5, 15: 8.5, 16: 8.5, 17: 7.5, 18: 7.5, 19: 7.5, 20: 7.5,
+           21: 7.5, 22: 8.5, 23: 10.5}
+    mouth = np.zeros((H, W), bool)
     for x in top:
-        yt, yb = top[x], bot[x]
-        D.P(x + 0.5, yt, 'white', 3)
-        D.P(x + 0.5, yb, 'white', 2 if x > 10 else 3)
-        ys = np.arange(yt - 1.0, yb + 0.5, -1.0)
-        n = len(ys)
-        for i, y in enumerate(ys):
-            k = (x - 9) / 14.0
-            t = 4 if k < 0.25 else 3 if k < 0.55 else 2
-            if 0 < i < n - 1 and x >= 18:
-                t = 1
-            D.P(x + 0.5, y, 'red', t)
-            if n >= 2:
-                if i == 0 and x % 3 != 1 and x >= 11:
-                    D.P(x + 0.5, y, 'white', 3)                          # upper tooth base
-                if i == 1 and x % 3 == 0 and x >= 12 and n >= 3:
-                    D.P(x + 0.5, y, 'white', 2)                          # its tip, raked back
-                if i == n - 1 and x % 3 != 2 and x >= 12:
-                    D.P(x + 0.5, y, 'white', 3)                          # lower tooth base
-                if i == n - 2 and x % 3 == 1 and x >= 13 and n >= 4:
-                    D.P(x + 0.5, y, 'white', 2)
-    # front of the mouth and the cheek line running back from the corner
-    D.P(9.5, 11.5, 'white', 3); D.P(9.5, 10.5, 'white', 3)
-    for (x, y, t) in [(24.5, 11.5, 3), (25.5, 12.5, 2)]:
-        D.P(x, y, 'white', t)
+        for y in np.arange(top[x] - 1.0, bot[x] + 0.5, -1.0):
+            c, r = cv.cell(x + 0.5, y)
+            mouth[r, c] = True
+    # red, brighter at the front, a dark throat at the back
+    for r, c in zip(*np.nonzero(mouth)):
+        x = c - OX
+        k = (x - 10) / 13.0
+        D.put(c, r, 'red', 4 if k < 0.2 else 3 if k < 0.5 else 2)
+    dt = runs_from(mouth, 'top'); db = runs_from(mouth, 'bot')
+    throat = mouth & (dt > 2) & (db > 2) & (X > 16.0)
+    D.recolor(throat, tone=1)
+    # teeth: bases two cells of every three along each jaw, tips raked back, upper and lower offset to interlock
+    for r, c in zip(*np.nonzero(mouth)):
+        x = c - OX
+        if x < 11:
+            continue
+        if dt[r, c] == 1 and x % 3 != 1:
+            D.put(c, r, 'white', 3)
+        elif dt[r, c] == 2 and x % 3 == 0:
+            D.put(c, r, 'white', 2)
+        elif db[r, c] == 1 and x % 3 != 2 and x > 11:
+            D.put(c, r, 'white', 2)
+        elif db[r, c] == 2 and x % 3 == 1 and x > 12:
+            D.put(c, r, 'white', 1)
+    # lip line all round, then the cheek line from the corner
+    grow = mouth.copy()
+    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        grow |= shift(mouth, dy, dx)
+    lip = grow & ~mouth
+    D.fill(lip, 'red', 0)
+    for (x, y, t) in [(24.5, 11.5, 0), (25.5, 12.5, 0), (26.5, 12.5, 0)]:
+        D.P(x, y, 'red', t)
     D.erase(~fus | Layer.edge_of(fus))
     return D
 
@@ -572,19 +607,20 @@ def tail_rotor():
             tip = u > R - 2
             # planform: leading edge row lit, trailing row dark (blade is seen flat)
             put(c, c0 - 1, 'yellow' if tip else 'dark', 3 if tip else 6)
-            put(c, c0, 'yellow' if tip else 'dark', 2 if tip else 4)
-            if u < 5:
-                put(c, c0 + 1, 'dark', 2)
+            put(c, c0, 'yellow' if tip else 'dark', 1 if tip else 1)
     # hub and pitch change plate
     for dc in (-1, 0, 1):
         for dr in (-1, 0, 1):
             put(c0 + dc, c0 + dr, 'steel', 3)
     put(c0, c0, 'steel', 6); put(c0 - 1, c0 - 1, 'steel', 5); put(c0 + 1, c0 + 1, 'steel', 1)
-    occ = a[..., 3] > 0
-    e = np.zeros_like(occ)
-    p = np.pad(occ, 1)
-    ring = (p[:-2, 1:-1] | p[2:, 1:-1] | p[1:-1, :-2] | p[1:-1, 2:]) & ~occ
-    a[ring, :3] = RAMPS['dark'][0]; a[ring, 3] = 255
+    for sgn in (1, -1):                                   # dark end caps so the tips read on a light sky
+        put(c0 + sgn * (R + 1), c0 - 1, 'dark', 0); put(c0 + sgn * (R + 1), c0, 'dark', 0)
+    for dc in (-2, 2):
+        for dr in (-2, -1, 0, 1, 2):
+            put(c0 + dc, c0 + dr, 'dark', 0)
+    for dr in (-2, 2):
+        for dc in (-1, 0, 1):
+            put(c0 + dc, c0 + dr, 'dark', 0)
     # blur disc
     b = np.zeros((TR, TR, 4), np.uint8)
     yy, xx = np.mgrid[0:TR, 0:TR]

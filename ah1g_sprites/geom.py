@@ -65,9 +65,10 @@ STRUTS = (34.2, 51.4)                           # x centres of the cross tube le
 
 # chin turret: a ball tucked under the nose (photo and box art), 40 mm M129 grenade launcher with a short barrel.
 # Bottom 0.35 m off the ground (Bell drawing: 1'1.25").
-TURRET_C = (13.4, 6.5)
-TURRET_R = (2.75, 2.75)
-GUN_PIVOT = TURRET_C
+TURRET_C = (13.2, 7.1)          # ball centre just under the chin; the upper part hides in the nose
+TURRET_R = (4.8, 5.0)            # 0.88 m ball, hangs 0.45-0.5 m under the chin
+GUN_PIVOT = (13.2, 5.2)          # elevation axis
+MUZZLE_X = 5.2                   # at rest the barrel stands about 3.4 cells (0.31 m) proud of the dome
 
 # rocket pods: outboard M200A1 19-tube (1.69 m x 0.41 m), inboard M158A1 7-tube (about 1.6 m x 0.27 m)
 POD_OUT = (38.3, 56.8, 7.0, 11.4)               # x0, x1, y0, y1
