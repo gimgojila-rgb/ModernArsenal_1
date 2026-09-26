@@ -212,8 +212,8 @@ def extras(L, fus):
     G = cv.layer('gear')
     x0, x1 = SKID
     for xs in STRUTS:
-        G.fill((X > xs - 1.0) & (X < xs) & (Y > 1.8) & (Y < c((0, 131))[1]), 'hod', 5)
-        G.fill((X > xs) & (X < xs + 1.0) & (Y > 1.8) & (Y < c((0, 131))[1]), 'hod', 2)
+        G.fill((X > xs - 1.0) & (X < xs) & (Y > 1.8) & (Y < c((0, 135))[1]), 'hod', 5)
+        G.fill((X > xs) & (X < xs + 1.0) & (Y > 1.8) & (Y < c((0, 135))[1]), 'hod', 2)
         for dx in (-1.5, -0.5, 0.5, 1.5):
             G.P(xs + dx, 1.4, 'hod', 3)
     G.fill((X > x0 + 0.5) & (X < x1) & (Y > 1.0) & (Y < 2.0) & ~G.occ(), 'hod', 5)
